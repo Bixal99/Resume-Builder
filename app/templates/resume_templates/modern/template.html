@@ -1,0 +1,316 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- ===== HEADER: Name, Title, Contact ===== -->
+<header class="resume-header">
+    {% if resume.photo %}
+    <div class="header-photo">
+        <img src="{{ resume.photo }}" alt="Profile Photo" class="profile-photo" />
+    </div>
+    {% endif %}
+    <div class="header-content">
+        {% if has_personal %}
+        <h1 class="resume-name">{{ full_name }}</h1>
+        {% endif %}
+        {% if resume.professional_title %}
+        <p class="resume-title">{{ resume.professional_title }}</p>
+        {% endif %}
+        {% if has_contact %}
+        <div class="contact-info">
+            {% if resume.email %}
+            <span class="contact-item">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+                <a href="mailto:{{ resume.email }}">{{ resume.email }}</a>
+            </span>
+            {% endif %}
+            {% if resume.phone %}
+            <span class="contact-item">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+                {{ resume.phone }}
+            </span>
+            {% endif %}
+            {% if resume.address %}
+            <span class="contact-item">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/></svg>
+                {{ resume.address }}
+            </span>
+            {% endif %}
+            {% if resume.linkedin %}
+            <span class="contact-item">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></svg>
+                <a href="{{ resume.linkedin | format_url }}" target="_blank" rel="noopener noreferrer">LinkedIn</a>
+            </span>
+            {% endif %}
+            {% if resume.github %}
+            <span class="contact-item">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 19c-5 1.5-5-2.5-7-3m14 6v-3.87a3.37 3.37 0 0 0-.94-2.61c3.14-.35 6.44-1.54 6.44-7A5.44 5.44 0 0 0 20 4.77 5.07 5.07 0 0 0 19.91 1S18.73.65 16 2.48a13.38 13.38 0 0 0-7 0C6.27.65 5.09 1 5.09 1A5.07 5.07 0 0 0 5 4.77a5.44 5.44 0 0 0-1.5 3.78c0 5.42 3.3 6.61 6.44 7A3.37 3.37 0 0 0 9 18.13V22"/></svg>
+                <a href="{{ resume.github | format_url }}" target="_blank" rel="noopener noreferrer">GitHub</a>
+            </span>
+            {% endif %}
+            {% if resume.portfolio %}
+            <span class="contact-item">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+                <a href="{{ resume.portfolio | format_url }}" target="_blank" rel="noopener noreferrer">Portfolio</a>
+            </span>
+            {% endif %}
+            {% if resume.website %}
+            <span class="contact-item">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+                <a href="{{ resume.website | format_url }}" target="_blank" rel="noopener noreferrer">Website</a>
+            </span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</header>
+
+<!-- ===== PROFESSIONAL SUMMARY ===== -->
+{% if has_summary %}
+<section class="resume-section" data-section-type="summary">
+    <h2 class="section-title">Professional Summary</h2>
+    <div class="section-content">
+        <div class="summary-text">{{ resume.summary | parse_bullets }}</div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== EXPERIENCE ===== -->
+{% if has_experience %}
+<section class="resume-section" data-section-type="experience">
+    <h2 class="section-title">Work Experience</h2>
+    <div class="section-content">
+        {% for exp in resume.experience %}
+        <div class="entry">
+            <div class="entry-header">
+                <div class="entry-left">
+                    <h3 class="entry-title">{{ exp.position }}</h3>
+                    <p class="entry-subtitle">{{ exp.company }}{% if exp.location %} · {{ exp.location }}{% endif %}</p>
+                </div>
+                <div class="entry-right">
+                    <span class="entry-date">{{ exp.start_date or '' }}{% if exp.start_date %} – {% endif %}{% if exp.is_current %}Present{% else %}{{ exp.end_date or '' }}{% endif %}</span>
+                </div>
+            </div>
+            {% if exp.description %}
+            <div class="entry-description">{{ exp.description | parse_bullets }}</div>
+            {% endif %}
+            {% if exp.achievements %}
+            <ul class="entry-list">
+                {% for achievement in exp.achievements %}
+                <li>{{ achievement }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== EDUCATION ===== -->
+{% if has_education %}
+<section class="resume-section" data-section-type="education">
+    <h2 class="section-title">Education</h2>
+    <div class="section-content">
+        {% for edu in resume.education %}
+        <div class="entry">
+            <div class="entry-header">
+                <div class="entry-left">
+                    <h3 class="entry-title">{{ edu.degree }}{% if edu.field_of_study %} in {{ edu.field_of_study }}{% endif %}</h3>
+                    <p class="entry-subtitle">{{ edu.institution }}{% if edu.location %} · {{ edu.location }}{% endif %}</p>
+                </div>
+                <div class="entry-right">
+                    <span class="entry-date">{{ edu.start_date or '' }}{% if edu.start_date %} – {% endif %}{% if edu.is_current %}Present{% else %}{{ edu.end_date or '' }}{% endif %}</span>
+                    {% if edu.grade %}
+                    <span class="entry-badge">{{ edu.grade }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if edu.description %}
+            <div class="entry-description">{{ edu.description | parse_bullets }}</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== PROJECTS ===== -->
+{% if has_projects %}
+<section class="resume-section" data-section-type="projects">
+    <h2 class="section-title">Projects</h2>
+    <div class="section-content">
+        {% for project in resume.projects %}
+        <div class="entry">
+            <div class="entry-header">
+                <div class="entry-left">
+                    <h3 class="entry-title">
+                        {{ project.title }}
+                        {% if project.github_url %}<a href="{{ project.github_url | format_url }}" class="entry-link" target="_blank" rel="noopener noreferrer">GitHub</a>{% endif %}
+                        {% if project.live_url %}<a href="{{ project.live_url | format_url }}" class="entry-link" target="_blank" rel="noopener noreferrer">Live</a>{% endif %}
+                    </h3>
+                </div>
+                {% if project.date %}
+                <div class="entry-right">
+                    <span class="entry-date">{{ project.date }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% if project.description %}
+            <div class="entry-description">{{ project.description | parse_bullets }}</div>
+            {% endif %}
+            {% if project.technologies %}
+            <div class="tech-tags">
+                {% for tech in project.technologies %}
+                <span class="tag">{{ tech }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+            {% if project.highlights %}
+            <ul class="entry-list">
+                {% for highlight in project.highlights %}
+                <li>{{ highlight }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== SKILLS ===== -->
+{% if has_skills %}
+<section class="resume-section" data-section-type="skills">
+    <h2 class="section-title">Skills</h2>
+    <div class="section-content">
+        <div class="skills-grid">
+            {% set categories = {} %}
+            {% for skill in resume.skills %}
+                {% set cat = skill.category or 'Technical Skills' %}
+                {% if cat not in categories %}
+                    {% set _ = categories.update({cat: []}) %}
+                {% endif %}
+                {% set _ = categories[cat].append(skill.name) %}
+            {% endfor %}
+            {% for category, skill_names in categories.items() %}
+            <div class="skill-category">
+                {% set display_cat = category | replace('_', ' ') %}
+                <h4 class="skill-category-title">{% if 'Frameworks & Libraries' in display_cat or 'Frameworks &amp; Libraries' in display_cat %}Frameworks &amp;<br>Libraries:{% elif 'Tools & Platforms' in display_cat or 'Tools &amp; Platforms' in display_cat %}Tools &amp;<br>Platforms:{% else %}{{ display_cat }}:{% endif %}</h4>
+                <div class="skill-tags">
+                    {% for name in skill_names %}
+                    <span class="tag">{{ name }}</span>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== CERTIFICATIONS ===== -->
+{% if has_certifications %}
+<section class="resume-section" data-section-type="certifications">
+    <h2 class="section-title">Certifications</h2>
+    <div class="section-content">
+        {% for cert in resume.certifications %}
+        <div class="entry entry-compact">
+            <div class="entry-header">
+                <div class="entry-left">
+                    <h3 class="entry-title">{{ cert.name }}</h3>
+                    {% if cert.issuer %}<p class="entry-subtitle">{{ cert.issuer }}</p>{% endif %}
+                </div>
+                <div class="entry-right">
+                    {% if cert.date %}<span class="entry-date">{{ cert.date }}</span>{% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== LANGUAGES ===== -->
+{% if has_languages %}
+<section class="resume-section" data-section-type="languages">
+    <h2 class="section-title">Languages</h2>
+    <div class="section-content">
+        <div class="languages-list">
+            {% for lang in resume.languages %}
+            <span class="language-item">{{ lang.name }}{% if lang.fluency %} <em>({{ lang.fluency }})</em>{% endif %}</span>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== AWARDS ===== -->
+{% if has_awards %}
+<section class="resume-section" data-section-type="awards">
+    <h2 class="section-title">Awards & Honors</h2>
+    <div class="section-content">
+        {% for award in resume.awards %}
+        <div class="entry entry-compact">
+            <div class="entry-header">
+                <div class="entry-left">
+                    <h3 class="entry-title">{{ award.title }}</h3>
+                    {% if award.issuer %}<p class="entry-subtitle">{{ award.issuer }}</p>{% endif %}
+                </div>
+                <div class="entry-right">
+                    {% if award.date %}<span class="entry-date">{{ award.date }}</span>{% endif %}
+                </div>
+            </div>
+            {% if award.description %}
+            <div class="entry-description">{{ award.description | parse_bullets }}</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== VOLUNTEER ===== -->
+{% if has_volunteer %}
+<section class="resume-section" data-section-type="volunteer">
+    <h2 class="section-title">Volunteer Experience</h2>
+    <div class="section-content">
+        {% for vol in resume.volunteer %}
+        <div class="entry">
+            <div class="entry-header">
+                <div class="entry-left">
+                    <h3 class="entry-title">{{ vol.role }}</h3>
+                    <p class="entry-subtitle">{{ vol.organization }}{% if vol.location %} · {{ vol.location }}{% endif %}</p>
+                </div>
+                <div class="entry-right">
+                    <span class="entry-date">{{ vol.start_date or '' }}{% if vol.start_date %} – {% endif %}{% if vol.is_current %}Present{% else %}{{ vol.end_date or '' }}{% endif %}</span>
+                </div>
+            </div>
+            {% if vol.description %}
+            <div class="entry-description">{{ vol.description | parse_bullets }}</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== REFERENCES ===== -->
+{% if has_references %}
+<section class="resume-section" data-section-type="references">
+    <h2 class="section-title">References</h2>
+    <div class="section-content">
+        <div class="references-grid">
+            {% for ref in resume.references %}
+            <div class="reference-card">
+                <h4 class="reference-name">{{ ref.name }}</h4>
+                {% if ref.title %}<p class="reference-title">{{ ref.title }}{% if ref.company %}, {{ ref.company }}{% endif %}</p>{% endif %}
+                {% if ref.email %}<p class="reference-contact">{{ ref.email }}</p>{% endif %}
+                {% if ref.phone %}<p class="reference-contact">{{ ref.phone }}</p>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% endblock %}

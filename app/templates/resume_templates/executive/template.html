@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block content %}
+<!-- ===== HEADER: Name, Title, Contact ===== -->
+<header class="resume-header">
+    <div class="header-content">
+        {% if has_personal %}
+        <h1 class="resume-name">{{ full_name }}</h1>
+        {% endif %}
+        {% if resume.professional_title %}
+        <p class="resume-title">{{ resume.professional_title }}</p>
+        {% endif %}
+        {% if has_contact %}
+        <div class="contact-info">
+            {% if resume.email %}
+            <span class="contact-item"><a href="mailto:{{ resume.email }}">{{ resume.email }}</a></span>
+            {% endif %}
+            {% if resume.phone %}
+            <span class="contact-item">{{ resume.phone }}</span>
+            {% endif %}
+            {% if resume.address %}
+            <span class="contact-item">{{ resume.address }}</span>
+            {% endif %}
+            {% if resume.linkedin %}
+            <span class="contact-item"><a href="{{ resume.linkedin | format_url }}" target="_blank" rel="noopener noreferrer">LinkedIn</a></span>
+            {% endif %}
+            {% if resume.github %}
+            <span class="contact-item"><a href="{{ resume.github | format_url }}" target="_blank" rel="noopener noreferrer">GitHub</a></span>
+            {% endif %}
+            {% if resume.portfolio %}
+            <span class="contact-item"><a href="{{ resume.portfolio | format_url }}" target="_blank" rel="noopener noreferrer">Portfolio</a></span>
+            {% endif %}
+            {% if resume.website %}
+            <span class="contact-item"><a href="{{ resume.website | format_url }}" target="_blank" rel="noopener noreferrer">Website</a></span>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</header>
+
+<!-- ===== PROFESSIONAL SUMMARY ===== -->
+{% if has_summary %}
+<section class="resume-section" data-section-type="summary">
+    <h2 class="section-title">Professional Summary</h2>
+    <div class="section-content">
+        <div class="summary-text">{{ resume.summary | parse_bullets }}</div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== SKILLS ===== -->
+{% if has_skills %}
+<section class="resume-section" data-section-type="skills">
+    <h2 class="section-title">Skills & Expertise</h2>
+    <div class="section-content">
+        <div class="skills-container">
+            {% set categories = {} %}
+            {% for skill in resume.skills %}
+                {% set cat = skill.category or 'Technical Skills' %}
+                {% if cat not in categories %}
+                    {% set _ = categories.update({cat: []}) %}
+                {% endif %}
+                {% set _ = categories[cat].append(skill.name) %}
+            {% endfor %}
+            {% for category, skill_names in categories.items() %}
+            <div class="skill-category">
+                {% set display_cat = category | replace('_', ' ') %}
+                <span class="skill-category-title">{{ display_cat }}:</span>
+                <span class="skill-category-list">{{ skill_names | join(', ') }}</span>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== EXPERIENCE ===== -->
+{% if has_experience %}
+<section class="resume-section" data-section-type="experience">
+    <h2 class="section-title">Professional Experience</h2>
+    <div class="section-content">
+        {% for exp in resume.experience %}
+        <div class="entry">
+            <div class="entry-header">
+                <div class="entry-left">
+                    <h3 class="entry-title">{{ exp.position }}</h3>
+                    <p class="entry-subtitle">{{ exp.company }}{% if exp.location %} · {{ exp.location }}{% endif %}</p>
+                </div>
+                <div class="entry-right">
+                    <span class="entry-date">{{ exp.start_date or '' }}{% if exp.start_date %} – {% endif %}{% if exp.is_current %}Present{% else %}{{ exp.end_date or '' }}{% endif %}</span>
+                </div>
+            </div>
+            {% if exp.description %}
+            <div class="entry-description">{{ exp.description | parse_bullets }}</div>
+            {% endif %}
+            {% if exp.achievements %}
+            <ul class="entry-list">
+                {% for achievement in exp.achievements %}
+                <li>{{ achievement }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== PROJECTS ===== -->
+{% if has_projects %}
+<section class="resume-section" data-section-type="projects">
+    <h2 class="section-title">Key Projects</h2>
+    <div class="section-content">
+        {% for project in resume.projects %}
+        <div class="entry">
+            <div class="entry-header">
+                <div class="entry-left">
+                    <h3 class="entry-title">
+                        {{ project.title }}
+                        {% if project.github_url %}<a href="{{ project.github_url | format_url }}" class="entry-link" target="_blank" rel="noopener noreferrer">GitHub</a>{% endif %}
+                        {% if project.live_url %}<a href="{{ project.live_url | format_url }}" class="entry-link" target="_blank" rel="noopener noreferrer">Live</a>{% endif %}
+                    </h3>
+                </div>
+                {% if project.date %}
+                <div class="entry-right">
+                    <span class="entry-date">{{ project.date }}</span>
+                </div>
+                {% endif %}
+            </div>
+            {% if project.description %}
+            <div class="entry-description">{{ project.description | parse_bullets }}</div>
+            {% endif %}
+            {% if project.technologies %}
+            <div class="tech-stack">
+                <strong>Technologies:</strong> {{ project.technologies | join(', ') }}
+            </div>
+            {% endif %}
+            {% if project.highlights %}
+            <ul class="entry-list">
+                {% for highlight in project.highlights %}
+                <li>{{ highlight }}</li>
+                {% endfor %}
+            </ul>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== EDUCATION ===== -->
+{% if has_education %}
+<section class="resume-section" data-section-type="education">
+    <h2 class="section-title">Education</h2>
+    <div class="section-content">
+        {% for edu in resume.education %}
+        <div class="entry">
+            <div class="entry-header">
+                <div class="entry-left">
+                    <h3 class="entry-title">{{ edu.degree }}{% if edu.field_of_study %} in {{ edu.field_of_study }}{% endif %}</h3>
+                    <p class="entry-subtitle">{{ edu.institution }}{% if edu.location %} · {{ edu.location }}{% endif %}</p>
+                </div>
+                <div class="entry-right">
+                    <span class="entry-date">{{ edu.start_date or '' }}{% if edu.start_date %} – {% endif %}{% if edu.is_current %}Present{% else %}{{ edu.end_date or '' }}{% endif %}</span>
+                    {% if edu.grade %}
+                    <span class="entry-badge">{{ edu.grade }}</span>
+                    {% endif %}
+                </div>
+            </div>
+            {% if edu.description %}
+            <div class="entry-description">{{ edu.description | parse_bullets }}</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== CERTIFICATIONS ===== -->
+{% if has_certifications %}
+<section class="resume-section" data-section-type="certifications">
+    <h2 class="section-title">Certifications</h2>
+    <div class="section-content">
+        {% for cert in resume.certifications %}
+        <div class="entry entry-compact">
+            <div class="entry-header">
+                <div class="entry-left">
+                    <span class="entry-title">{{ cert.name }}</span>
+                    {% if cert.issuer %}<span class="entry-subtitle"> — {{ cert.issuer }}</span>{% endif %}
+                </div>
+                <div class="entry-right">
+                    {% if cert.date %}<span class="entry-date">{{ cert.date }}</span>{% endif %}
+                </div>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== LANGUAGES ===== -->
+{% if has_languages %}
+<section class="resume-section" data-section-type="languages">
+    <h2 class="section-title">Languages</h2>
+    <div class="section-content">
+        <div class="languages-list">
+            {% for lang in resume.languages %}
+            <span class="language-item">{{ lang.name }}{% if lang.fluency %} <em>({{ lang.fluency }})</em>{% endif %}</span>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== AWARDS ===== -->
+{% if has_awards %}
+<section class="resume-section" data-section-type="awards">
+    <h2 class="section-title">Awards & Honors</h2>
+    <div class="section-content">
+        {% for award in resume.awards %}
+        <div class="entry entry-compact">
+            <div class="entry-header">
+                <div class="entry-left">
+                    <span class="entry-title">{{ award.title }}</span>
+                    {% if award.issuer %}<span class="entry-subtitle"> — {{ award.issuer }}</span>{% endif %}
+                </div>
+                <div class="entry-right">
+                    {% if award.date %}<span class="entry-date">{{ award.date }}</span>{% endif %}
+                </div>
+            </div>
+            {% if award.description %}
+            <div class="entry-description">{{ award.description | parse_bullets }}</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== VOLUNTEER ===== -->
+{% if has_volunteer %}
+<section class="resume-section" data-section-type="volunteer">
+    <h2 class="section-title">Volunteer Experience</h2>
+    <div class="section-content">
+        {% for vol in resume.volunteer %}
+        <div class="entry">
+            <div class="entry-header">
+                <div class="entry-left">
+                    <h3 class="entry-title">{{ vol.role }}</h3>
+                    <p class="entry-subtitle">{{ vol.organization }}{% if vol.location %} · {{ vol.location }}{% endif %}</p>
+                </div>
+                <div class="entry-right">
+                    <span class="entry-date">{{ vol.start_date or '' }}{% if vol.start_date %} – {% endif %}{% if vol.is_current %}Present{% else %}{{ vol.end_date or '' }}{% endif %}</span>
+                </div>
+            </div>
+            {% if vol.description %}
+            <div class="entry-description">{{ vol.description | parse_bullets }}</div>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</section>
+{% endif %}
+
+<!-- ===== REFERENCES ===== -->
+{% if has_references %}
+<section class="resume-section" data-section-type="references">
+    <h2 class="section-title">References</h2>
+    <div class="section-content">
+        <div class="references-grid">
+            {% for ref in resume.references %}
+            <div class="reference-card">
+                <h4 class="reference-name">{{ ref.name }}</h4>
+                {% if ref.title %}<p class="reference-title">{{ ref.title }}{% if ref.company %}, {{ ref.company }}{% endif %}</p>{% endif %}
+                {% if ref.email %}<p class="reference-contact">{{ ref.email }}</p>{% endif %}
+                {% if ref.phone %}<p class="reference-contact">{{ ref.phone }}</p>{% endif %}
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+{% endif %}
+
+{% endblock %}

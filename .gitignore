@@ -1,0 +1,48 @@
+# Python virtual environments
+venv/
+.venv/
+env/
+ENV/
+
+# Python caching & bytecode
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local database & state
+data/
+*.db
+*.db-journal
+*.db-shm
+*.db-wal
+
+# User uploads & PDF exports
+uploads/
+exports/
+
+# Configuration and secrets
+.env
+.env.production
+.env.local
+
+# Operating System files
+.DS_Store
+Thumbs.db
+
+# IDEs and editors
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Zip files
+*.zip
+
+# Temporary & backup directories
+scratch/
+ResuMate-HF/
+ResuMate_perfect_working/

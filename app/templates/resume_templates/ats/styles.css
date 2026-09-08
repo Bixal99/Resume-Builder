@@ -1,0 +1,226 @@
+/* =============================================================================
+   Minimal ATS Resume Template — Styles
+   Purely ATS-optimized, high contrast, clean structure, no graphics/icons
+   ============================================================================= */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --color-text: #000000;
+    --color-text-muted: #333333;
+    --color-border: #666666;
+    --color-bg: #ffffff;
+    --font-family: Arial, Helvetica, sans-serif;
+}
+
+@page {
+    size: A4;
+    margin: 0;
+}
+
+body {
+    font-family: var(--font-family);
+    font-size: 10pt;
+    line-height: 1.4;
+    color: var(--color-text);
+    background: var(--color-bg);
+}
+
+.resume-page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 20mm 20mm;
+    margin: 0 auto;
+    background: var(--color-bg);
+}
+
+.resume-page[data-page-size="Letter"] {
+    width: 8.5in;
+    min-height: 11in;
+    padding: 0.75in 0.75in;
+}
+
+/* --- Header --- */
+.resume-header {
+    text-align: left;
+    margin-bottom: 16px;
+}
+
+.resume-name {
+    font-size: 24pt;
+    font-weight: bold;
+    color: var(--color-text);
+    line-height: 1.1;
+    margin-bottom: 4px;
+}
+
+.resume-title {
+    font-size: 12pt;
+    font-weight: bold;
+    color: var(--color-text-muted);
+    margin-bottom: 6px;
+}
+
+.contact-info {
+    font-size: 9pt;
+    color: var(--color-text-muted);
+    line-height: 1.4;
+}
+
+.contact-item {
+    display: inline-block;
+}
+
+.contact-item:not(:last-child)::after {
+    content: " | ";
+    margin: 0 8px;
+    font-weight: bold;
+}
+
+.contact-item a {
+    color: var(--color-text);
+    text-decoration: none;
+}
+
+.contact-item a:hover {
+    text-decoration: underline;
+}
+
+/* --- Sections --- */
+.resume-section {
+    margin-bottom: 16px;
+}
+
+.section-title {
+    font-size: 12pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    color: var(--color-text);
+    border-bottom: 1px solid var(--color-border);
+    padding-bottom: 2px;
+    margin-bottom: 8px;
+    page-break-after: avoid;
+    break-after: avoid;
+}
+
+.section-content {
+    /* Standard container */
+}
+
+/* --- Entries (Experience, Education, Projects, etc.) --- */
+.entry {
+    margin-bottom: 10px;
+    page-break-inside: avoid;
+}
+
+.entry:last-child {
+    margin-bottom: 0;
+}
+
+.entry-compact {
+    margin-bottom: 4px;
+}
+
+.entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    font-size: 10pt;
+}
+
+.entry-title {
+    font-weight: bold;
+}
+
+.entry-subtitle {
+    color: var(--color-text-muted);
+}
+
+.entry-date {
+    font-size: 9.5pt;
+    color: var(--color-text-muted);
+    white-space: nowrap;
+}
+
+.entry-description {
+    font-size: 9.5pt;
+    margin-top: 2px;
+}
+
+.entry-list {
+    margin-top: 3px;
+    padding-left: 20px;
+    font-size: 9.5pt;
+}
+
+.entry-list li {
+    margin-bottom: 1px;
+}
+
+/* --- Summary --- */
+.summary-text {
+    font-size: 9.5pt;
+    text-align: justify;
+}
+
+/* --- Skills --- */
+.skills-container {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.skill-row {
+    font-size: 9.5pt;
+}
+
+.skill-category {
+    font-weight: bold;
+}
+
+.skill-list {
+    margin-left: 4px;
+}
+
+/* --- Tech Stack (Projects) --- */
+.tech-stack {
+    font-size: 9pt;
+    font-style: italic;
+    color: var(--color-text-muted);
+    margin-top: 2px;
+}
+
+.entry-links {
+    font-weight: normal;
+    font-size: 8.5pt;
+    color: var(--color-text-muted);
+}
+
+/* --- Languages --- */
+.languages-text {
+    font-size: 9.5pt;
+}
+
+/* --- References --- */
+.references-list-plain {
+    font-size: 9.5pt;
+}
+
+.reference-item-plain {
+    margin-bottom: 3px;
+}
+
+/* --- Print Optimization --- */
+@media print {
+    .resume-page {
+        padding: 0;
+    }
+
+    .entry {
+        page-break-inside: avoid;
+    }
+}

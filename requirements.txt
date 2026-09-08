@@ -1,0 +1,36 @@
+# =============================================================================
+# Professional Resume Builder — Python Dependencies
+# =============================================================================
+
+# --- Web Framework ---
+fastapi>=0.115.0
+uvicorn[standard]>=0.34.0
+python-multipart>=0.0.18
+aiofiles>=24.1.0
+
+# --- Templating ---
+Jinja2>=3.1.5
+
+# --- Data Validation ---
+pydantic>=2.10.0
+pydantic-settings>=2.7.0
+email-validator>=2.2.0
+
+# --- Database ---
+SQLAlchemy>=2.0.36
+aiosqlite>=0.20.0
+
+# --- Security ---
+bleach>=6.2.0
+
+# --- Utilities ---
+python-dotenv>=1.0.1
+
+# --- PDF Generation (install one of these) ---
+weasyprint    # (lightweight, recommended for local dev)
+playwright    # (pixel-perfect, requires: playwright install chromium)
+
+# --- Testing (optional) ---
+# pytest>=8.3.0
+# pytest-asyncio>=0.25.0
+# httpx>=0.28.0

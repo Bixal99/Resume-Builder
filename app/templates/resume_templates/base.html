@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ full_name or 'Resume' }}</title>
+    <base target="_blank">
+
+    <!-- Google Fonts — Standard + User Options -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Source+Sans+3:ital,wght@0,400;0,600;1,400&family=Poppins:wght@400;500;600;700&family=Roboto:wght@400;500;700&family=Open+Sans:wght@400;600;700&family=Lato:wght@400;700&family=Montserrat:wght@400;500;600;700&family=Oswald:wght@400;500;600&family=Merriweather:wght@400;700&family=Playfair+Display:wght@400;600;700&family=Lora:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        {{ template_css }}
+        
+        /* User Formatting Overrides */
+        {% if resume.theme_settings %}
+        :root {
+            --user-section-gap: {% if resume.theme_settings.section_spacing == 'compact' %}0.75rem{% elif resume.theme_settings.section_spacing == 'relaxed' %}1.5rem{% else %}1rem{% endif %};
+            --user-line-height: {% if resume.theme_settings.line_spacing == 'tight' %}1.25{% elif resume.theme_settings.line_spacing == 'loose' %}1.8{% else %}1.5{% endif %};
+            --user-font-scale: {% if resume.theme_settings.font_size == 'compact' %}0.92{% elif resume.theme_settings.font_size == 'tiny' %}0.86{% elif resume.theme_settings.font_size == 'large' %}1.08{% else %}1{% endif %};
+            --user-page-padding: {% if resume.theme_settings.page_margin == 'compact' %}14mm 16mm{% elif resume.theme_settings.page_margin == 'relaxed' %}24mm 24mm{% else %}20mm 20mm{% endif %};
+            {% if resume.theme_settings.font_family and resume.theme_settings.font_family != 'default' %}
+            --font-heading: {{ resume.theme_settings.font_family | safe }} !important;
+            --font-body: {{ resume.theme_settings.font_family | safe }} !important;
+            {% endif %}
+        }
+        .resume-page {
+            line-height: var(--user-line-height) !important;
+            text-align: {{ resume.theme_settings.text_alignment or 'left' }} !important;
+            padding: var(--user-page-padding) !important;
+            font-size: calc(1rem * var(--user-font-scale, 1)) !important;
+            {% if resume.theme_settings.font_family and resume.theme_settings.font_family != 'default' %}
+            font-family: {{ resume.theme_settings.font_family | safe }} !important;
+            {% endif %}
+        }
+        .resume-section {
+            margin-bottom: var(--user-section-gap) !important;
+        }
+        .resume-section:last-child {
+            margin-bottom: 0 !important;
+        }
+        {% endif %}
+
+        /* Skill Category Title Wrap & Alignment */
+        .skill-category:has(.skill-tags) {
+            display: flex !important;
+            align-items: flex-start !important;
+            gap: 10px !important;
+        }
+        .skill-category:has(.skill-tags) .skill-category-title {
+            white-space: normal !important;
+            word-break: normal !important;
+            overflow-wrap: break-word !important;
+            line-height: 1.25 !important;
+            flex: 0 0 115px !important;
+            width: 115px !important;
+            min-width: 110px !important;
+            max-width: 125px !important;
+            padding-top: 1px !important;
+        }
+        .skill-category:has(.skill-tags) .skill-tags {
+            flex: 1 !important;
+            min-width: 0 !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+        }
+
+        /* PDF Export Fixes for headless Chromium */
+        @media print {
+            .resume-page {
+                margin: 0 !important;
+                box-shadow: none !important;
+                border: none !important;
+            }
+            .template-field-highlight {
+                animation: none !important;
+                background-color: transparent !important;
+                outline: none !important;
+                box-shadow: none !important;
+            }
+        }
+
+        /* Real-Time Live Field Replacement Highlight */
+        @keyframes templateFieldHighlight {
+            0% {
+                background-color: rgba(99, 102, 241, 0.28) !important;
+                outline: 2.5px solid #6366f1 !important;
+                box-shadow: 0 0 14px rgba(99, 102, 241, 0.35) !important;
+                border-radius: 4px;
+            }
+            50% {
+                background-color: rgba(16, 185, 129, 0.22) !important;
+                outline: 2.5px solid #10b981 !important;
+                box-shadow: 0 0 16px rgba(16, 185, 129, 0.4) !important;
+                border-radius: 4px;
+            }
+            100% {
+                background-color: transparent !important;
+                outline: 2.5px solid transparent !important;
+                box-shadow: none !important;
+            }
+        }
+        .template-field-highlight {
+            animation: templateFieldHighlight 2.4s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+            position: relative;
+        }
+    </style>
+</head>
+<body>
+    <div class="resume-page" data-page-size="{{ page_size }}">
+        {% block content %}
+        <!-- Content is provided by child templates -->
+        {% endblock %}
+    </div>
+</body>
+</html>

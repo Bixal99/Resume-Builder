@@ -1,0 +1,316 @@
+/* =============================================================================
+   Executive Elegance Resume Template — Styles
+   ATS-friendly, print-optimized, premium corporate typography
+   ============================================================================= */
+
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+:root {
+    --color-primary: #111e38;      /* Deep Royal Navy */
+    --color-accent: #8b7355;       /* Muted Gold/Bronze */
+    --color-text: #2b2b2b;         /* Soft Charcoal */
+    --color-text-secondary: #555555;
+    --color-text-light: #777777;
+    --color-border: #d5c3aa;       /* Soft gold line */
+    --color-bg: #ffffff;
+    --color-link: #111e38;
+    --font-heading: 'Georgia', 'Times New Roman', serif;
+    --font-body: 'Source Sans 3', 'Segoe UI', sans-serif;
+}
+
+@page {
+    size: A4;
+    margin: 0;
+}
+
+body {
+    font-family: var(--font-body);
+    font-size: 10pt;
+    line-height: 1.5;
+    color: var(--color-text);
+    background: var(--color-bg);
+    -webkit-font-smoothing: antialiased;
+}
+
+.resume-page {
+    width: 210mm;
+    min-height: 297mm;
+    padding: 22mm 24mm;
+    margin: 0 auto;
+    background: var(--color-bg);
+}
+
+.resume-page[data-page-size="Letter"] {
+    width: 8.5in;
+    min-height: 11in;
+    padding: 0.8in 0.9in;
+}
+
+/* --- Header --- */
+.resume-header {
+    text-align: center;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--color-border);
+}
+
+.resume-name {
+    font-family: var(--font-heading);
+    font-size: 26pt;
+    font-weight: 700;
+    color: var(--color-primary);
+    line-height: 1.15;
+    margin-bottom: 6px;
+    letter-spacing: -0.01em;
+}
+
+.resume-title {
+    font-family: var(--font-heading);
+    font-size: 12pt;
+    font-weight: 600;
+    font-style: italic;
+    color: var(--color-accent);
+    margin-bottom: 12px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.contact-info {
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 6px 16px;
+    font-size: 8.5pt;
+    color: var(--color-text-secondary);
+}
+
+.contact-item a {
+    color: var(--color-text-secondary);
+    text-decoration: none;
+}
+
+.contact-item a:hover {
+    color: var(--color-accent);
+    text-decoration: underline;
+}
+
+.contact-item:not(:last-child)::after {
+    content: "•";
+    margin-left: 16px;
+    color: var(--color-accent);
+}
+
+/* --- Sections --- */
+.resume-section {
+    margin-bottom: 20px;
+}
+
+.section-title {
+    font-family: var(--font-heading);
+    font-size: 13pt;
+    font-weight: 700;
+    color: var(--color-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    padding-bottom: 4px;
+    margin-bottom: 10px;
+    border-bottom: 1px solid var(--color-primary);
+    page-break-after: avoid;
+    break-after: avoid;
+}
+
+/* --- Entries (Experience, Education, Projects, etc.) --- */
+.entry {
+    margin-bottom: 14px;
+    page-break-inside: avoid;
+}
+
+.entry:last-child {
+    margin-bottom: 0;
+}
+
+.entry-compact {
+    margin-bottom: 8px;
+}
+
+.entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+    margin-bottom: 2px;
+}
+
+.entry-title {
+    font-family: var(--font-heading);
+    font-size: 11pt;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.entry-subtitle {
+    font-size: 9.5pt;
+    color: var(--color-text-secondary);
+    font-style: italic;
+    font-weight: 600;
+    margin-top: 1px;
+}
+
+.entry-date {
+    font-family: var(--font-heading);
+    font-size: 9pt;
+    color: var(--color-text-secondary);
+    font-style: italic;
+    white-space: nowrap;
+}
+
+.entry-badge {
+    display: inline-block;
+    font-size: 8pt;
+    color: var(--color-accent);
+    font-weight: 600;
+    margin-left: 8px;
+}
+
+.entry-description {
+    font-size: 9.5pt;
+    color: var(--color-text);
+    margin-top: 4px;
+    line-height: 1.5;
+}
+
+.entry-list {
+    margin-top: 4px;
+    padding-left: 18px;
+    font-size: 9.5pt;
+    line-height: 1.55;
+    color: var(--color-text);
+}
+
+.entry-list li {
+    margin-bottom: 3px;
+}
+
+.entry-list li::marker {
+    color: var(--color-accent);
+}
+
+.entry-link {
+    font-size: 8pt;
+    color: var(--color-accent);
+    text-decoration: none;
+    margin-left: 8px;
+    font-weight: 500;
+    font-family: var(--font-body);
+}
+
+.entry-link:hover {
+    text-decoration: underline;
+}
+
+/* --- Summary --- */
+.summary-text {
+    font-size: 9.5pt;
+    line-height: 1.6;
+    color: var(--color-text);
+}
+
+/* --- Skills --- */
+.skills-container {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.skill-category {
+    font-size: 9.5pt;
+    line-height: 1.5;
+}
+
+.skill-category-title {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.skill-category-list {
+    color: var(--color-text);
+    margin-left: 4px;
+}
+
+/* --- Tech Stack (Projects) --- */
+.tech-stack {
+    font-size: 8.5pt;
+    color: var(--color-text-secondary);
+    margin-top: 4px;
+}
+
+/* --- Languages --- */
+.languages-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px 18px;
+    font-size: 9.5pt;
+}
+
+.language-item em {
+    color: var(--color-text-light);
+    font-size: 8.5pt;
+}
+
+/* --- References --- */
+.references-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+}
+
+.reference-card {
+    font-size: 9.5pt;
+}
+
+.reference-name {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    color: var(--color-primary);
+}
+
+.reference-title {
+    color: var(--color-text-secondary);
+    font-size: 8.5pt;
+    font-style: italic;
+}
+
+.reference-contact {
+    color: var(--color-text-light);
+    font-size: 8.5pt;
+}
+
+/* --- Print Optimization --- */
+@page {
+    margin: 18mm 20mm;
+}
+
+@media print {
+    body {
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+    }
+
+    .resume-page {
+        padding: 0;
+        box-shadow: none;
+    }
+
+    .entry {
+        page-break-inside: avoid;
+    }
+
+    a {
+        color: var(--color-primary) !important;
+    }
+}

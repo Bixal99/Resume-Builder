@@ -1,0 +1,109 @@
+/* ==========================================================================
+   Harvard ATS Pro Template Styles
+   Designed for 100% Applicant Tracking System parsing compatibility
+   ========================================================================== */
+
+/* Reset & Base styles */
+@page {
+    margin: 8mm 10mm;
+}
+
+body {
+    font-family: "Times New Roman", Times, serif;
+    font-size: 8.5pt;
+    line-height: 1.1;
+    color: #000000;
+    background-color: #ffffff;
+    margin: 0;
+    padding: 0;
+    text-align: left;
+}
+
+/* Typography elements */
+h1, h2, h3, h4, h5, h6 {
+    color: #000000;
+    margin-top: 0;
+    font-weight: bold;
+}
+
+p, ul, ol, div {
+    margin-top: 0;
+    margin-bottom: 8px;
+}
+
+a {
+    color: #000000;
+    text-decoration: none; /* In print/PDF, links shouldn't necessarily be underlined */
+}
+
+/* Sections */
+.resume-section {
+    margin-bottom: 3px;
+}
+
+.section-title {
+    font-size: 11pt;
+    font-weight: bold;
+    text-transform: uppercase;
+    margin-bottom: 1px;
+    padding-bottom: 2px;
+    border-bottom: 1pt solid #000000;
+    letter-spacing: 0.5px;
+}
+
+.section-content {
+    /* No complex grids or flexboxes that could misalign reading order */
+    display: block;
+}
+
+/* Ensure bullet lists render purely with bullet characters */
+.resume-list, ul {
+    margin-top: 2px;
+    margin-bottom: 1px;
+    padding-left: 8px;
+    list-style-type: disc;
+}
+
+li {
+    margin-bottom: 1px;
+}
+
+/* Entry layout utilities (using basic flex for left/right split only where safe) */
+.entry-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    margin-bottom: 1px;
+}
+
+.entry-left {
+    flex: 1 1 auto;
+}
+
+.entry-right {
+    flex: 0 0 auto;
+    text-align: right;
+    
+}
+
+/* Hiding hidden sections dynamically based on user settings */
+.section-hidden {
+    display: none !important;
+}
+
+/* Print optimizations */
+@media print {
+    body {
+        font-size: 10pt; /* Slightly smaller for print */
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+    
+    a {
+        text-decoration: none;
+    }
+    
+    .entry {
+        page-break-inside: avoid; /* Prevent entries from breaking across pages */
+    }
+}

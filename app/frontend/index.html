@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Professional Resume Builder — Create Stunning Resumes in Minutes</title>
+    <meta name="description" content="Build professional, ATS-friendly resumes with our intuitive builder. Live preview, beautiful templates, and instant PDF download.">
+
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="/static/css/variables.css?v=2.1.0">
+    <link rel="stylesheet" href="/static/css/base.css?v=2.1.0">
+    <link rel="stylesheet" href="/static/css/components.css?v=2.1.0">
+    <link rel="stylesheet" href="/static/css/landing.css?v=2.1.0">
+</head>
+<body>
+    <!-- ===== NAVIGATION ===== -->
+    <nav class="nav" id="main-nav">
+        <div class="container nav-container">
+            <a href="/" class="nav-logo">
+                <span class="logo-icon">📄</span>
+                <span class="logo-text">ResumeBuilder<span class="logo-dot">.</span></span>
+            </a>
+            <div class="nav-links">
+                <a href="#features" class="nav-link">Features</a>
+                <a href="#how-it-works" class="nav-link">How it Works</a>
+                <a href="#templates" class="nav-link">Templates</a>
+                <a href="#" class="btn btn-primary btn-sm" id="nav-cta-btn">Build Your Resume</a>
+            </div>
+            <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
+                <span></span><span></span><span></span>
+            </button>
+        </div>
+    </nav>
+
+    <!-- ===== HERO SECTION ===== -->
+    <section class="hero" id="hero">
+        <div class="hero-bg">
+            <div class="hero-gradient"></div>
+            <div class="hero-grid"></div>
+            <div class="hero-orb hero-orb-1"></div>
+            <div class="hero-orb hero-orb-2"></div>
+            <div class="hero-orb hero-orb-3"></div>
+        </div>
+        <div class="container hero-container-split">
+            <!-- Hero Left: Title, Description, Actions -->
+            <div class="hero-left-column animate-fade-in-up">
+                <div class="hero-badge animate-fade-in">
+                    <span class="badge badge-success">✨ The Next-Gen CV Builder</span>
+                </div>
+                <h1 class="hero-title">
+                    Build a Resume That
+                    <span class="text-gradient">Stands Out</span>
+                </h1>
+                <p class="hero-description">
+                    Create professional, ATS-optimized resumes in minutes with our intuitive builder.
+                    Watch your changes update in real-time, pick gorgeous layouts, and export to PDF instantly.
+                </p>
+                <div class="hero-actions">
+                    <a href="#" class="btn btn-primary btn-lg" id="hero-cta-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                        Start Building Free
+                    </a>
+                    <a href="#templates" class="btn btn-outline btn-lg" style="border-color: var(--color-accent); color: var(--color-accent); font-weight: 600;">
+                        ⚡ Try Pre-filled Templates
+                    </a>
+                </div>
+                <div class="hero-stats">
+                    <div class="stat">
+                        <span class="stat-number">100%</span>
+                        <span class="stat-label">Free</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat">
+                        <span class="stat-number">Live ATS</span>
+                        <span class="stat-label">Scanner</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat">
+                        <span class="stat-number">3 Starters</span>
+                        <span class="stat-label">Pre-filled</span>
+                    </div>
+                    <div class="stat-divider"></div>
+                    <div class="stat">
+                        <span class="stat-number">JSON</span>
+                        <span class="stat-label">Standard</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Hero Right: Live Interactive Mockup -->
+            <div class="hero-right-column animate-fade-in-up" style="animation-delay: 150ms;">
+                <div class="hero-mockup-window">
+                    <div class="mockup-titlebar">
+                        <div class="titlebar-dots">
+                            <span class="dot dot-red"></span>
+                            <span class="dot dot-yellow"></span>
+                            <span class="dot dot-green"></span>
+                        </div>
+                        <div class="titlebar-address">resumebuilder.io/editor</div>
+                        <div style="margin-left: auto; font-size: 10px; font-weight: 700; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 2px 8px; border-radius: 12px; display: flex; align-items: center; gap: 4px;">
+                            <span>🎯 94% ATS Match</span>
+                        </div>
+                    </div>
+                    <div class="mockup-editor-split">
+                        <!-- Mockup Form Panel -->
+                        <div class="mockup-panel mockup-form-panel">
+                            <div class="mockup-section-title">Personal Details</div>
+                            <div class="mockup-input-group">
+                                <label class="mockup-label">Job Title</label>
+                                <div class="mockup-input-field"><span class="typing-text">Software Engineer</span></div>
+                            </div>
+                            <div class="mockup-section-title">Skills</div>
+                            <div class="mockup-tags-container">
+                                <span class="mockup-tag">React</span>
+                                <span class="mockup-tag">Python</span>
+                                <span class="mockup-tag">FastAPI</span>
+                                <span class="mockup-tag tag-new">Docker</span>
+                            </div>
+                        </div>
+                        <!-- Mockup CV Preview -->
+                        <div class="mockup-panel mockup-cv-panel">
+                            <div class="mockup-cv-header">
+                                <div class="mockup-cv-name">Hasan Ahmad</div>
+                                <div class="mockup-cv-title">Software Engineer</div>
+                                <div class="mockup-cv-contacts">
+                                    <span>✉ hasanahmad1302003@gmail.com</span>
+                                </div>
+                            </div>
+                            <div class="mockup-cv-body">
+                                <div class="mockup-cv-section">
+                                    <div class="mockup-cv-sec-title">Skills</div>
+                                    <div class="mockup-cv-skills">
+                                        <span>React</span>
+                                        <span>Python</span>
+                                        <span>FastAPI</span>
+                                        <span class="cv-tag-new">Docker</span>
+                                    </div>
+                                </div>
+                                <div class="mockup-cv-section">
+                                    <div class="mockup-cv-sec-title">Experience</div>
+                                    <div class="mockup-cv-exp-title">Senior Software Engineer at Google</div>
+                                    <div class="mockup-cv-exp-desc">Led frontend performance and architecture scaling.</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== FEATURES ===== -->
+    <section class="section features" id="features">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Features</span>
+                <h2 class="section-title">Everything You Need to <span class="text-gradient">Land Your Dream Job</span></h2>
+                <p class="section-description">Our builder is packed with powerful features designed to help you create the perfect resume.</p>
+            </div>
+            <div class="features-grid">
+                <div class="feature-card" data-animate>
+                    <div class="feature-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--color-accent); font-size: 24px; display: flex; align-items: center; justify-content: center;">
+                        🎯
+                    </div>
+                    <h3 class="feature-title">Live ATS Keyword Matcher</h3>
+                    <p class="feature-description">Paste any target job description to calculate your match percentage in real-time. Uncover missing keywords and optimize before applying.</p>
+                </div>
+                <div class="feature-card" data-animate>
+                    <div class="feature-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--color-success); font-size: 24px; display: flex; align-items: center; justify-content: center;">
+                        ⚡
+                    </div>
+                    <h3 class="feature-title">3 Pre-filled Starters</h3>
+                    <p class="feature-description">Never face an intimidating blank canvas. One-click load complete, realistic sample resumes tailored for Engineering, Product, and Graduates.</p>
+                </div>
+                <div class="feature-card" data-animate>
+                    <div class="feature-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--color-warning); font-size: 24px; display: flex; align-items: center; justify-content: center;">
+                        📦
+                    </div>
+                    <h3 class="feature-title">Standard JSON Resume Export</h3>
+                    <p class="feature-description">Full bi-directional support for the open JSON Resume schema. Backup locally, switch devices easily, and keep 100% control of your data.</p>
+                </div>
+                <div class="feature-card" data-animate>
+                    <div class="feature-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    </div>
+                    <h3 class="feature-title">Live Real-time Preview</h3>
+                    <p class="feature-description">See your resume dynamically render on every keystroke. What you see is rendered identically down to the pixel in your PDF download.</p>
+                </div>
+                <div class="feature-card" data-animate>
+                    <div class="feature-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    </div>
+                    <h3 class="feature-title">Instant Pixel-Perfect PDF</h3>
+                    <p class="feature-description">Download your resume as an ultra sharp PDF with embedded fonts, automated page budgeting, and printer-ready margins.</p>
+                </div>
+                <div class="feature-card" data-animate>
+                    <div class="feature-icon">
+                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    </div>
+                    <h3 class="feature-title">Continuous Auto-Save</h3>
+                    <p class="feature-description">Never lose your edits. Your resume is automatically saved to your browser state with image compression and multi-profile support.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== HOW IT WORKS ===== -->
+    <section class="section how-it-works" id="how-it-works">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">How It Works</span>
+                <h2 class="section-title">Three Simple Steps to Your <span class="text-gradient">Perfect Resume</span></h2>
+            </div>
+            <div class="steps-grid">
+                <div class="step-card" data-animate>
+                    <div class="step-number">01</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Fill In Your Details</h3>
+                        <p class="step-description">Enter your personal info, work experience, education, skills, and more using our guided step wizard.</p>
+                    </div>
+                </div>
+                <div class="step-connector">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="step-card" data-animate>
+                    <div class="step-number">02</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Choose a Template</h3>
+                        <p class="step-description">Select from our collection of professional, ATS-optimized templates. Preview your resume in real-time.</p>
+                    </div>
+                </div>
+                <div class="step-connector">
+                    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
+                </div>
+                <div class="step-card" data-animate>
+                    <div class="step-number">03</div>
+                    <div class="step-content">
+                        <h3 class="step-title">Download Your PDF</h3>
+                        <p class="step-description">Download your polished resume as a high-quality PDF, ready to submit to any employer.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== TEMPLATES PREVIEW ===== -->
+    <section class="section templates-section" id="templates">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Quick-Start Starters</span>
+                <h2 class="section-title">Pre-filled Resumes Ready in <span class="text-gradient">One Click</span></h2>
+                <p class="section-description">Skip the blank canvas. Choose a realistic, professionally tailored starter profile to launch straight into the builder.</p>
+            </div>
+            <div class="template-showcase" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 24px; max-width: 1120px; margin: 0 auto;">
+                
+                <!-- Sample 1: Senior Full-Stack Engineer -->
+                <div class="template-preview-card visible" style="background: var(--bg-surface); border-radius: var(--radius-xl); border: 1px solid var(--color-gray-200); overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-md); max-width: 100%;">
+                    <div style="padding: 20px; border-bottom: 1px solid var(--color-gray-100); background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(168, 85, 247, 0.06));">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span class="badge badge-success" style="font-size: 11px;">Engineering</span>
+                            <span style="font-size: 11px; font-weight: 600; color: var(--color-accent);">6+ Yrs Exp</span>
+                        </div>
+                        <h3 style="font-size: 18px; font-weight: 700; margin: 0 0 4px 0; color: var(--text-primary);">Senior Full-Stack Engineer</h3>
+                        <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Alex Vance · San Francisco, CA</div>
+                    </div>
+                    <div style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+                            High-throughput cloud systems, event-driven pipelines handling 15M+ daily requests, CI/CD automation, and full-stack leadership.
+                        </p>
+                        <div style="margin-bottom: 16px;">
+                            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">Key Stack:</div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">TypeScript</span>
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">React</span>
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Python</span>
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">FastAPI</span>
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Docker / AWS</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-launch-sample" data-sample-id="sample_fullstack" style="width: 100%; justify-content: center; font-size: 13px; padding: 10px 16px;">
+                            Use This Profile 🚀
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sample 2: Technical Product Manager -->
+                <div class="template-preview-card visible" style="background: var(--bg-surface); border-radius: var(--radius-xl); border: 1px solid var(--color-gray-200); overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-md); max-width: 100%;">
+                    <div style="padding: 20px; border-bottom: 1px solid var(--color-gray-100); background: linear-gradient(135deg, rgba(16, 185, 129, 0.06), rgba(59, 130, 246, 0.06));">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span class="badge badge-success" style="font-size: 11px; background: #dcfce7; color: #15803d;">Product & Tech</span>
+                            <span style="font-size: 11px; font-weight: 600; color: #15803d;">5+ Yrs Exp</span>
+                        </div>
+                        <h3 style="font-size: 18px; font-weight: 700; margin: 0 0 4px 0; color: var(--text-primary);">Technical Product Manager</h3>
+                        <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Sarah Kim · New York, NY</div>
+                    </div>
+                    <div style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+                            Scaled enterprise B2B SaaS from 0 to $12M ARR, led squads of 14 engineers and designers, customer discovery, and data analytics.
+                        </p>
+                        <div style="margin-bottom: 16px;">
+                            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">Key Competencies:</div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Product Strategy</span>
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">A/B Testing</span>
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">SQL</span>
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Agile / Scrum</span>
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Mixpanel</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-launch-sample" data-sample-id="sample_product_manager" style="width: 100%; justify-content: center; font-size: 13px; padding: 10px 16px;">
+                            Use This Profile 🚀
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Sample 3: Computer Science Graduate -->
+                <div class="template-preview-card visible" style="background: var(--bg-surface); border-radius: var(--radius-xl); border: 1px solid var(--color-gray-200); overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-md); max-width: 100%;">
+                    <div style="padding: 20px; border-bottom: 1px solid var(--color-gray-100); background: linear-gradient(135deg, rgba(245, 158, 11, 0.06), rgba(239, 68, 68, 0.06));">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                            <span class="badge badge-success" style="font-size: 11px; background: #fef3c7; color: #b45309;">Entry Level</span>
+                            <span style="font-size: 11px; font-weight: 600; color: #b45309;">Class of 2024</span>
+                        </div>
+                        <h3 style="font-size: 18px; font-weight: 700; margin: 0 0 4px 0; color: var(--text-primary);">Computer Science Graduate</h3>
+                        <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">David Chen · Seattle, WA</div>
+                    </div>
+                    <div style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
+                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
+                            Dean's List honors, full-stack capstone projects, collegiate hackathon 1st place winner, and software engineering internship experience.
+                        </p>
+                        <div style="margin-bottom: 16px;">
+                            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">Foundational Skills:</div>
+                            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Python</span>
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Java</span>
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Algorithms</span>
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">React</span>
+                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Git / Linux</span>
+                            </div>
+                        </div>
+                        <button class="btn btn-primary btn-launch-sample" data-sample-id="sample_cs_grad" style="width: 100%; justify-content: center; font-size: 13px; padding: 10px 16px;">
+                            Use This Profile 🚀
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== CTA ===== -->
+    <section class="section cta-section">
+        <div class="container">
+            <div class="cta-card">
+                <div class="cta-bg">
+                    <div class="cta-orb cta-orb-1"></div>
+                    <div class="cta-orb cta-orb-2"></div>
+                </div>
+                <div class="cta-content">
+                    <h2 class="cta-title">Ready to Build Your Resume?</h2>
+                    <p class="cta-description">Start creating your professional resume now. It's free, fast, and easy.</p>
+                    <a href="#" class="btn btn-primary btn-lg" id="cta-bottom-btn">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                        Get Started Free
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== FOOTER ===== -->
+    <footer class="footer">
+        <div class="container footer-content">
+            <div class="footer-brand">
+                <span class="logo-icon">📄</span>
+                <span class="logo-text">ResumeBuilder<span class="logo-dot">.</span></span>
+            </div>
+            <p class="footer-text">Build beautiful resumes, land your dream job.</p>
+            <p class="footer-copyright">&copy; 2026 ResumeBuilder. All rights reserved.</p>
+        </div>
+    </footer>
+
+    <!-- Toast Container -->
+    <div class="toast-container" id="toast-container"></div>
+
+    <!-- Profiles Manager Modal -->
+    <div class="custom-modal-overlay" id="profiles-modal-overlay">
+        <div class="custom-modal-card profiles-modal-card">
+            <div class="custom-modal-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                    <span class="custom-modal-icon">📄</span>
+                    <h3 style="margin:0;">My Resumes</h3>
+                </div>
+                <button class="btn-close-modal" id="profiles-modal-close" style="background:none; border:none; font-size: 24px; cursor: pointer; color: var(--color-text-secondary);">&times;</button>
+            </div>
+            <div class="profiles-list-container" id="profiles-list-container">
+                <!-- Profiles populated by JS -->
+            </div>
+            <div class="create-profile-form">
+                <input type="text" id="new-profile-name" class="form-input" placeholder="Name for new resume (e.g. Frontend Dev)">
+                <button type="button" class="btn btn-primary" id="btn-create-profile">Create New CV</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="/static/js/utils/helpers.js?v=2.1.0"></script>
+    <script src="/static/js/data/sample-resumes.js?v=2.1.0"></script>
+    <script src="/static/js/store.js?v=2.1.0"></script>
+    <script src="/static/js/components/profiles-modal.js?v=2.1.0"></script>
+    <script src="/static/js/landing.js?v=2.1.0"></script>
+</body>
+</html>

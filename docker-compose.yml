@@ -1,0 +1,56 @@
+# =============================================================================
+# Professional Resume Builder — Docker Compose
+# =============================================================================
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: resume-builder
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - APP_NAME=${APP_NAME:-Professional Resume Builder}
+      - DEBUG=${DEBUG:-false}
+      - DATABASE_URL=sqlite+aiosqlite:///./data/resume_builder.db
+      - SECRET_KEY=${SECRET_KEY:-change-me-in-production}
+      - PDF_ENGINE=${PDF_ENGINE:-playwright}
+    volumes:
+      - app-data:/app/data
+      - app-uploads:/app/uploads
+      - app-exports:/app/exports
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 10s
+
+  # --- Development override (use: docker compose --profile dev up) ---
+  app-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: production
+    container_name: resume-builder-dev
+    profiles:
+      - dev
+    ports:
+      - "${PORT:-8000}:8000"
+    environment:
+      - DEBUG=true
+      - DATABASE_URL=sqlite+aiosqlite:///./data/resume_builder.db
+      - SECRET_KEY=dev-secret-key-not-for-production
+      - PDF_ENGINE=${PDF_ENGINE:-playwright}
+    volumes:
+      - .:/app
+      - app-data:/app/data
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+volumes:
+  app-data:
+  app-uploads:
+  app-exports:
