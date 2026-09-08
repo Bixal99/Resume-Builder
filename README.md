@@ -5,7 +5,7 @@
      ═══════════════════════════════════════════════════════════ -->
 
 <img
-  src="https://capsule-render.vercel.app/api?type=waving&color=4F46E5&height=220&section=header&text=ResuMate&fontSize=70&fontColor=FFFFFF&animation=fadeIn&fontAlignY=35&desc=Next-Gen%20AI%20Resume%20Engineer%20%C2%B7%20Real-Time%20Neural%20Parsing%20%26%20ATS%20Optimization&descAlignY=55&descSize=19"
+  src="https://capsule-render.vercel.app/api?type=waving&color=4F46E5&height=220&section=header&text=ResuMate&fontSize=70&fontColor=FFFFFF&animation=fadeIn&fontAlignY=35&desc=Next-Gen%20AI%20Resume%20Engineer%20-%20Real-Time%20Neural%20Parsing%20and%20ATS%20Optimization&descAlignY=55&descSize=19"
   alt="ResuMate — Next-Gen AI Resume Engineer"
   width="100%"
 />
