@@ -6,7 +6,7 @@ const AdditionalComponent = (() => {
     const TABS = [
         { id: 'languages', label: 'Languages' },
         { id: 'certifications', label: 'Certifications' },
-        { id: 'awards', label: 'Awards' },
+        { id: 'awards', label: 'Awards & Achievements' },
         { id: 'volunteer', label: 'Volunteer' },
         { id: 'references', label: 'References' },
     ];
@@ -107,15 +107,15 @@ const AdditionalComponent = (() => {
             <div id="award-list">${items.map(it => `
                 <div class="entry-card" data-id="${escapeAttr(it.id)}">
                     <div class="form-grid">
-                        <div class="form-group"><label class="form-label">Award Title</label><input class="form-input add-field" data-sec="awards" data-id="${escapeAttr(it.id)}" data-f="title" value="${escapeAttr(it.title || '')}" placeholder="Best Paper Award"></div>
-                        <div class="form-group"><label class="form-label">Issuer</label><input class="form-input add-field" data-sec="awards" data-id="${escapeAttr(it.id)}" data-f="issuer" value="${escapeAttr(it.issuer || '')}" placeholder="IEEE"></div>
-                        <div class="form-group"><label class="form-label">Date</label><input class="form-input add-field" data-sec="awards" data-id="${escapeAttr(it.id)}" data-f="date" value="${escapeAttr(it.date || '')}" placeholder="2023"></div>
+                        <div class="form-group"><label class="form-label">Award / Achievement Title</label><input class="form-input add-field" data-sec="awards" data-id="${escapeAttr(it.id)}" data-f="title" value="${escapeAttr(it.title || '')}" placeholder="Hackathon Winner / Dean's Honor List / Best Paper"></div>
+                        <div class="form-group"><label class="form-label">Issuer</label><input class="form-input add-field" data-sec="awards" data-id="${escapeAttr(it.id)}" data-f="issuer" value="${escapeAttr(it.issuer || '')}" placeholder="IEEE / University / Organization"></div>
+                        <div class="form-group"><label class="form-label">Date</label><input class="form-input add-field" data-sec="awards" data-id="${escapeAttr(it.id)}" data-f="date" value="${escapeAttr(it.date || '')}" placeholder="2024"></div>
                         <div class="form-group full-width"><label class="form-label">Description</label><textarea class="form-textarea add-field" data-sec="awards" data-id="${escapeAttr(it.id)}" data-f="description" rows="2">${sanitizeHTML(it.description || '')}</textarea></div>
                     </div>
                     <button class="btn btn-ghost btn-sm remove-additional" data-sec="awards" data-id="${escapeAttr(it.id)}" style="margin-top:var(--space-2)">Remove</button>
                 </div>
             `).join('')}</div>
-            <button class="add-entry-btn" id="add-award"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Add Award</button>
+            <button class="add-entry-btn" id="add-award"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg> Add Award / Achievement</button>
         `;
     }
 

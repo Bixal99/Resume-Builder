@@ -26,6 +26,7 @@ from app.services.resume_service import ResumeService
 from app.services.template_service import TemplateService
 from app.services.parser import (
     extract_text_from_pdf,
+    extract_profile_photo_from_pdf,
     parse_resume_with_llm,
     stream_parse_resume_with_llm,
     optimize_bullet_with_llm,
@@ -201,7 +202,8 @@ async def parse_resume_upload(file: UploadFile = File(...)):
             raise HTTPException(status_code=400, detail="Uploaded file is empty.")
 
         text = await asyncio.to_thread(extract_text_from_pdf, content)
-        parsed_data = await asyncio.to_thread(parse_resume_with_llm, text)
+        photo = await asyncio.to_thread(extract_profile_photo_from_pdf, content)
+        parsed_data = await asyncio.to_thread(parse_resume_with_llm, text, photo=photo)
         return parsed_data
     except HTTPException:
         raise
@@ -230,6 +232,7 @@ async def parse_resume_upload_stream(file: UploadFile = File(...)):
 
     try:
         text = await asyncio.to_thread(extract_text_from_pdf, content)
+        photo = await asyncio.to_thread(extract_profile_photo_from_pdf, content)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Could not read PDF: {str(e)}")
 
@@ -238,7 +241,7 @@ async def parse_resume_upload_stream(file: UploadFile = File(...)):
 
         def worker():
             try:
-                for item in stream_parse_resume_with_llm(text):
+                for item in stream_parse_resume_with_llm(text, photo=photo):
                     q.put(item)
             except Exception as err:
                 q.put({"event": "error", "stage": 0, "detail": str(err), "pct": 0})

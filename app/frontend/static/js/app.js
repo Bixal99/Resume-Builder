@@ -121,6 +121,23 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     function populateAndHighlightField(fieldKey, value) {
+        if (fieldKey === 'photo') {
+            const previewEl = document.getElementById('photo-preview');
+            if (previewEl) {
+                if (value) {
+                    previewEl.innerHTML = `<img src="${value}" alt="Photo">`;
+                } else {
+                    previewEl.innerHTML = '<span class="photo-preview-placeholder">👤</span>';
+                }
+            }
+            if (typeof StepperComponent !== 'undefined') {
+                const cur = StepperComponent.getCurrentStep();
+                if (cur && cur.id === 'personal') {
+                    StepperComponent.renderFormStep();
+                }
+            }
+            return;
+        }
         const inputEl = document.getElementById(fieldKey);
         if (inputEl) {
             inputEl.value = value || '';

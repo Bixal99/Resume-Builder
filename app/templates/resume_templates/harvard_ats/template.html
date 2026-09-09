@@ -3,6 +3,11 @@
 {% block content %}
 <!-- ===== HEADER: Name, Title, Contact ===== -->
 <header class="resume-header" style="text-align: center; margin-bottom: 2px;">
+    {% if resume.photo %}
+    <div class="header-photo" style="margin-bottom: 6px; display: flex; justify-content: center;">
+        <img src="{{ resume.photo }}" alt="Profile Photo" class="profile-photo" style="width: 68px; height: 68px; border-radius: 50%; object-fit: cover; border: 1.5px solid #222;" />
+    </div>
+    {% endif %}
     {% if has_personal %}
     <h1 class="resume-name" style="font-size: 14pt; margin: 0; font-family: 'Times New Roman', serif; text-transform: uppercase;">{{ full_name }}</h1>
     {% endif %}
@@ -228,7 +233,7 @@
 <!-- ===== AWARDS ===== -->
 {% if has_awards %}
 <section class="resume-section" data-section-type="awards">
-    <h2 class="section-title">AWARDS & HONORS</h2>
+    <h2 class="section-title">AWARDS & ACHIEVEMENTS</h2>
     <div class="section-content">
         <ul style="list-style-type: disc; padding-left: 1.5em; margin: 0;">
         {% for award in resume.awards %}

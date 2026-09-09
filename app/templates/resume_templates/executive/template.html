@@ -3,6 +3,11 @@
 {% block content %}
 <!-- ===== HEADER: Name, Title, Contact ===== -->
 <header class="resume-header">
+    {% if resume.photo %}
+    <div class="header-photo">
+        <img src="{{ resume.photo }}" alt="Profile Photo" class="profile-photo" />
+    </div>
+    {% endif %}
     <div class="header-content">
         {% if has_personal %}
         <h1 class="resume-name">{{ full_name }}</h1>

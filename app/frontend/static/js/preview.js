@@ -620,9 +620,10 @@ const PreviewManager = (() => {
         }
 
         function renderDocCertificationEntry(cert) {
-            const name = escapeDocHtml(cert.name || '');
-            const issuer = cert.issuer ? ` · ${escapeDocHtml(cert.issuer)}` : '';
-            const date = cert.date || '';
+            const cObj = typeof cert === 'string' ? { name: cert } : (cert || {});
+            const name = escapeDocHtml(cObj.name || cObj.title || '');
+            const issuer = cObj.issuer ? ` · ${escapeDocHtml(cObj.issuer)}` : '';
+            const date = cObj.date || '';
             return `
                 <div class="entry">
                     <div class="entry-header">
@@ -637,7 +638,10 @@ const PreviewManager = (() => {
             if (!Array.isArray(languages)) return '';
             return `
                 <div class="languages-list" style="display: flex; flex-wrap: wrap; gap: 8px;">
-                    ${languages.map(l => `<span class="tag">${escapeDocHtml(l.name || '')}${l.fluency ? ` (${escapeDocHtml(l.fluency)})` : ''}</span>`).join('')}
+                    ${languages.map(l => {
+                        const lObj = typeof l === 'string' ? { name: l } : (l || {});
+                        return `<span class="tag">${escapeDocHtml(lObj.name || '')}${lObj.fluency ? ` (${escapeDocHtml(lObj.fluency)})` : ''}</span>`;
+                    }).join('')}
                 </div>
             `;
         }
@@ -707,15 +711,6 @@ const PreviewManager = (() => {
                     sumSlot.setAttribute('data-slot', 'summary');
                     sumSlot.innerHTML = `<span class="slot-shimmer">⚡ Extracting Professional Summary...</span>`;
                     page.appendChild(sumSlot);
-                }
-
-                // Placeholder for Experience
-                if (!page.querySelector('[data-section-type="experience"]')) {
-                    const expSlot = doc.createElement('div');
-                    expSlot.className = 'live-slot-placeholder slot-section';
-                    expSlot.setAttribute('data-slot', 'experience');
-                    expSlot.innerHTML = `<span class="slot-shimmer">⚡ Extracting Work Experience & STAR Bullets...</span>`;
-                    page.appendChild(expSlot);
                 }
 
                 // Placeholder for Education
@@ -845,6 +840,28 @@ const PreviewManager = (() => {
                     }
                     attachExternalLinkDelegation(doc);
                     triggerElHighlight(item);
+                } else if (field === 'photo') {
+                    let photoContainer = header.querySelector('.header-photo');
+                    let photoImg = header.querySelector('.profile-photo, .header-photo img, img.profile-photo');
+                    if (value) {
+                        if (photoImg) {
+                            photoImg.src = value;
+                            if (photoContainer) photoContainer.style.display = 'block';
+                            triggerElHighlight(photoImg);
+                        } else {
+                            if (!photoContainer) {
+                                photoContainer = doc.createElement('div');
+                                photoContainer.className = 'header-photo';
+                                header.insertBefore(photoContainer, header.firstChild);
+                            }
+                            photoContainer.innerHTML = `<img src="${escapeDocHtml(value)}" alt="Profile Photo" class="profile-photo">`;
+                            photoContainer.style.display = 'block';
+                            triggerElHighlight(photoContainer);
+                        }
+                    } else {
+                        if (photoContainer) photoContainer.remove();
+                        if (photoImg) photoImg.remove();
+                    }
                 } else if (field === 'summary') {
                     const slot = doc.querySelector('.live-slot-placeholder[data-slot="summary"]');
                     let sumSec = page.querySelector('[data-section-type="summary"]');
@@ -898,7 +915,7 @@ const PreviewManager = (() => {
                     skills: 'Skills',
                     certifications: 'Certifications',
                     languages: 'Languages',
-                    awards: 'Honors & Awards',
+                    awards: 'Awards & Achievements',
                     volunteer: 'Volunteer Experience',
                     references: 'References'
                 };
@@ -936,6 +953,23 @@ const PreviewManager = (() => {
                     innerContent = data.map(renderDocProjectEntry).join('');
                 } else if (section === 'certifications') {
                     innerContent = data.map(renderDocCertificationEntry).join('');
+                } else if (section === 'awards') {
+                    innerContent = data.map(item => {
+                        const aObj = typeof item === 'string' ? { title: item } : (item || {});
+                        const title = escapeDocHtml(aObj.title || aObj.name || '');
+                        const issuer = aObj.issuer ? ` · ${escapeDocHtml(aObj.issuer)}` : '';
+                        const date = aObj.date ? `<div class="entry-right"><span class="entry-date">${escapeDocHtml(aObj.date)}</span></div>` : '';
+                        const desc = aObj.description ? `<div class="entry-description">${formatBulletsToHtml(aObj.description)}</div>` : '';
+                        return `
+                            <div class="entry">
+                                <div class="entry-header">
+                                    <div class="entry-left"><h3 class="entry-title">${title}</h3><p class="entry-subtitle">${issuer}</p></div>
+                                    ${date}
+                                </div>
+                                ${desc}
+                            </div>
+                        `;
+                    }).join('');
                 } else if (section === 'languages') {
                     innerContent = renderDocLanguagesHtml(data);
                 } else {
@@ -1137,10 +1171,30 @@ const PreviewManager = (() => {
                     }
                     itemHtml = renderDocEducationEntry(item);
                 } else if (section === 'certifications') {
-                    if (item.name && contentEl.innerText.toLowerCase().includes(item.name.toLowerCase())) {
+                    const cObj = typeof item === 'string' ? { name: item } : (item || {});
+                    const cName = (cObj.name || cObj.title || '').trim();
+                    if (cName && contentEl.innerText.toLowerCase().includes(cName.toLowerCase())) {
                         return;
                     }
-                    itemHtml = renderDocCertificationEntry(item);
+                    itemHtml = renderDocCertificationEntry(cObj);
+                } else if (section === 'awards') {
+                    const aObj = typeof item === 'string' ? { title: item } : (item || {});
+                    const aTitle = (aObj.title || aObj.name || '').trim();
+                    if (aTitle && contentEl.innerText.toLowerCase().includes(aTitle.toLowerCase())) {
+                        return;
+                    }
+                    const issuer = aObj.issuer ? ` · ${escapeDocHtml(aObj.issuer)}` : '';
+                    const date = aObj.date ? `<div class="entry-right"><span class="entry-date">${escapeDocHtml(aObj.date)}</span></div>` : '';
+                    const desc = aObj.description ? `<div class="entry-description">${formatBulletsToHtml(aObj.description)}</div>` : '';
+                    itemHtml = `
+                        <div class="entry">
+                            <div class="entry-header">
+                                <div class="entry-left"><h3 class="entry-title">${escapeDocHtml(aTitle)}</h3><p class="entry-subtitle">${issuer}</p></div>
+                                ${date}
+                            </div>
+                            ${desc}
+                        </div>
+                    `;
                 } else if (section === 'languages') {
                     let langList = contentEl.querySelector('.languages-list');
                     if (!langList) {
@@ -1149,11 +1203,12 @@ const PreviewManager = (() => {
                         langList.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px;';
                         contentEl.appendChild(langList);
                     }
-                    const lName = (item.name || '').trim();
+                    const lObj = typeof item === 'string' ? { name: item } : (item || {});
+                    const lName = (lObj.name || '').trim();
                     if (langList.innerText.toLowerCase().includes(lName.toLowerCase())) return;
                     const tag = doc.createElement('span');
                     tag.className = 'tag template-field-highlight';
-                    tag.textContent = `${lName}${item.fluency ? ` (${item.fluency})` : ''}`;
+                    tag.textContent = `${lName}${lObj.fluency ? ` (${lObj.fluency})` : ''}`;
                     langList.appendChild(tag);
                     triggerElHighlight(tag);
                     return;

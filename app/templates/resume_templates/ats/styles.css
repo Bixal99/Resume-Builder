@@ -48,6 +48,25 @@ body {
 .resume-header {
     text-align: left;
     margin-bottom: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.header-photo {
+    flex-shrink: 0;
+}
+
+.profile-photo {
+    width: 68px;
+    height: 68px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid var(--color-border);
+}
+
+.header-content {
+    flex: 1;
 }
 
 .resume-name {
