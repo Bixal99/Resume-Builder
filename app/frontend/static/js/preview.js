@@ -252,7 +252,13 @@ const PreviewManager = (() => {
             }
         }
 
-        updatePreview = debounce(async () => {
+        let isLiveExtractionActive = false;
+
+        function setLiveExtractionActive(active) {
+            isLiveExtractionActive = !!active;
+        }
+
+        async function forceUpdatePreview() {
             try {
                 const data = ResumeStore.getResumeData();
                 const html = await API.getPreview(data);
@@ -283,6 +289,13 @@ const PreviewManager = (() => {
             } catch (e) {
                 console.warn('Preview update failed:', e);
             }
+        }
+
+        updatePreview = debounce(async () => {
+            if (isLiveExtractionActive) {
+                return;
+            }
+            await forceUpdatePreview();
         }, 350);
 
         // Subscribe to store changes
@@ -583,12 +596,13 @@ const PreviewManager = (() => {
             const gh = proj.github_url ? `<a href="${escapeDocHtml(formatExternalUrl(proj.github_url))}" class="entry-link" target="_blank" rel="noopener noreferrer">GitHub</a>` : '';
             const live = proj.live_url ? `<a href="${escapeDocHtml(formatExternalUrl(proj.live_url))}" class="entry-link" target="_blank" rel="noopener noreferrer">Live</a>` : '';
             const dateSpan = proj.date ? `<div class="entry-right"><span class="entry-date">${escapeDocHtml(proj.date)}</span></div>` : '';
+            const descHtml = proj.description ? `<div class="entry-description">${formatBulletsToHtml(proj.description)}</div>` : '';
             const techTags = Array.isArray(proj.technologies) && proj.technologies.length > 0
                 ? `<div class="tech-tags">${proj.technologies.map(t => `<span class="tag">${escapeDocHtml(t)}</span>`).join('')}</div>`
                 : '';
             const highlights = Array.isArray(proj.highlights) && proj.highlights.length > 0
                 ? `<ul class="entry-list">${proj.highlights.map(h => `<li>${escapeDocHtml(h)}</li>`).join('')}</ul>`
-                : (proj.description ? `<div class="entry-description">${formatBulletsToHtml(proj.description)}</div>` : '');
+                : '';
             
             return `
                 <div class="entry">
@@ -598,6 +612,7 @@ const PreviewManager = (() => {
                         </div>
                         ${dateSpan}
                     </div>
+                    ${descHtml}
                     ${techTags}
                     ${highlights}
                 </div>
@@ -712,6 +727,15 @@ const PreviewManager = (() => {
                     page.appendChild(eduSlot);
                 }
 
+                // Placeholder for Projects
+                if (!page.querySelector('[data-section-type="projects"]')) {
+                    const projSlot = doc.createElement('div');
+                    projSlot.className = 'live-slot-placeholder slot-section';
+                    projSlot.setAttribute('data-slot', 'projects');
+                    projSlot.innerHTML = `<span class="slot-shimmer">⚡ Extracting Projects & Technologies...</span>`;
+                    page.appendChild(projSlot);
+                }
+
                 // Placeholder for Skills
                 if (!page.querySelector('[data-section-type="skills"]')) {
                     const sklSlot = doc.createElement('div');
@@ -719,6 +743,24 @@ const PreviewManager = (() => {
                     sklSlot.setAttribute('data-slot', 'skills');
                     sklSlot.innerHTML = `<span class="slot-shimmer">⚡ Extracting Technical Skills...</span>`;
                     page.appendChild(sklSlot);
+                }
+
+                // Placeholder for Certifications
+                if (!page.querySelector('[data-section-type="certifications"]')) {
+                    const certSlot = doc.createElement('div');
+                    certSlot.className = 'live-slot-placeholder slot-section';
+                    certSlot.setAttribute('data-slot', 'certifications');
+                    certSlot.innerHTML = `<span class="slot-shimmer">⚡ Extracting Certifications...</span>`;
+                    page.appendChild(certSlot);
+                }
+
+                // Placeholder for Languages
+                if (!page.querySelector('[data-section-type="languages"]')) {
+                    const langSlot = doc.createElement('div');
+                    langSlot.className = 'live-slot-placeholder slot-section';
+                    langSlot.setAttribute('data-slot', 'languages');
+                    langSlot.innerHTML = `<span class="slot-shimmer">⚡ Extracting Languages...</span>`;
+                    page.appendChild(langSlot);
                 }
             } catch (e) {
                 console.warn('prepareForLiveExtraction error:', e);
@@ -822,7 +864,7 @@ const PreviewManager = (() => {
                     attachExternalLinkDelegation(doc);
                     triggerElHighlight(item);
                 } else if (field === 'summary') {
-                    removeSlot('summary');
+                    const slot = doc.querySelector('.live-slot-placeholder[data-slot="summary"]');
                     let sumSec = page.querySelector('[data-section-type="summary"]');
                     if (!sumSec) {
                         sumSec = doc.createElement('section');
@@ -834,12 +876,18 @@ const PreviewManager = (() => {
                                 <div class="summary-text"></div>
                             </div>
                         `;
-                        const nextSec = page.querySelector('.resume-section');
-                        if (nextSec) {
-                            page.insertBefore(sumSec, nextSec);
+                        if (slot) {
+                            slot.replaceWith(sumSec);
                         } else {
-                            page.appendChild(sumSec);
+                            const nextSec = page.querySelector('.resume-section');
+                            if (nextSec) {
+                                page.insertBefore(sumSec, nextSec);
+                            } else {
+                                page.appendChild(sumSec);
+                            }
                         }
+                    } else if (slot) {
+                        slot.remove();
                     }
                     const textEl = sumSec.querySelector('.summary-text') || sumSec;
                     textEl.innerHTML = formatBulletsToHtml(value);
@@ -859,9 +907,7 @@ const PreviewManager = (() => {
 
                 const page = doc.querySelector('.resume-page') || doc.body;
                 
-                // Remove placeholder slot for this section
                 const slot = doc.querySelector(`.live-slot-placeholder[data-slot="${section}"]`);
-                if (slot) slot.remove();
 
                 const sectionTitles = {
                     experience: 'Work Experience',
@@ -880,7 +926,13 @@ const PreviewManager = (() => {
                     secEl = doc.createElement('section');
                     secEl.className = 'resume-section';
                     secEl.setAttribute('data-section-type', section);
-                    page.appendChild(secEl);
+                    if (slot) {
+                        slot.replaceWith(secEl);
+                    } else {
+                        page.appendChild(secEl);
+                    }
+                } else if (slot) {
+                    slot.remove();
                 }
 
                 const title = sectionTitles[section] || (section.charAt(0).toUpperCase() + section.slice(1));
@@ -934,9 +986,7 @@ const PreviewManager = (() => {
 
                 const page = doc.querySelector('.resume-page') || doc.body;
 
-                // Remove placeholder slot for skills
                 const slot = doc.querySelector('.live-slot-placeholder[data-slot="skills"]');
-                if (slot) slot.remove();
 
                 let secEl = page.querySelector('[data-section-type="skills"]');
                 if (!secEl) {
@@ -949,7 +999,13 @@ const PreviewManager = (() => {
                             <div class="skills-grid"></div>
                         </div>
                     `;
-                    page.appendChild(secEl);
+                    if (slot) {
+                        slot.replaceWith(secEl);
+                    } else {
+                        page.appendChild(secEl);
+                    }
+                } else if (slot) {
+                    slot.remove();
                 }
 
                 let skillsGrid = secEl.querySelector('.skills-grid');
@@ -1035,9 +1091,7 @@ const PreviewManager = (() => {
 
                 const page = doc.querySelector('.resume-page') || doc.body;
 
-                // Remove placeholder slot for this section
                 const slot = doc.querySelector(`.live-slot-placeholder[data-slot="${section}"]`);
-                if (slot) slot.remove();
 
                 const sectionTitles = {
                     experience: 'Work Experience',
@@ -1061,7 +1115,13 @@ const PreviewManager = (() => {
                         <h2 class="section-title">${title}</h2>
                         <div class="section-content"></div>
                     `;
-                    page.appendChild(secEl);
+                    if (slot) {
+                        slot.replaceWith(secEl);
+                    } else {
+                        page.appendChild(secEl);
+                    }
+                } else if (slot) {
+                    slot.remove();
                 }
 
                 let contentEl = secEl.querySelector('.section-content');
@@ -1133,6 +1193,29 @@ const PreviewManager = (() => {
             }
         }
 
+        function removeSectionSlot(section) {
+            if (!iframe || !section) return;
+            try {
+                const doc = iframe.contentDocument || iframe.contentWindow.document;
+                if (!doc) return;
+                const slot = doc.querySelector(`.live-slot-placeholder[data-slot="${section}"]`);
+                if (slot) slot.remove();
+            } catch (e) {}
+        }
+
+        function cleanupUnusedSlots() {
+            if (!iframe) return;
+            try {
+                const doc = iframe.contentDocument || iframe.contentWindow.document;
+                if (!doc) return;
+                doc.querySelectorAll('.live-slot-placeholder').forEach(s => s.remove());
+            } catch (e) {}
+        }
+
+        PreviewManager.setLiveExtractionActive = setLiveExtractionActive;
+        PreviewManager.removeSectionSlot = removeSectionSlot;
+        PreviewManager.cleanupUnusedSlots = cleanupUnusedSlots;
+        PreviewManager.forceUpdatePreview = forceUpdatePreview;
         PreviewManager.prepareForLiveExtraction = prepareForLiveExtraction;
         PreviewManager.updateFieldDirectly = updateFieldDirectly;
         PreviewManager.updateSectionDirectly = updateSectionDirectly;
@@ -1141,11 +1224,32 @@ const PreviewManager = (() => {
         PreviewManager.highlightField = triggerElHighlight;
     }
 
-    function refresh() { if (updatePreview) updatePreview(); }
+    function refresh(immediate = false) {
+        if (immediate && PreviewManager.forceUpdatePreview) {
+            PreviewManager.forceUpdatePreview();
+        } else if (updatePreview) {
+            updatePreview();
+        }
+    }
 
     return { 
         init, 
         refresh,
+        setLiveExtractionActive: (active) => {
+            if (PreviewManager.setLiveExtractionActive) {
+                PreviewManager.setLiveExtractionActive(active);
+            }
+        },
+        removeSectionSlot: (section) => {
+            if (PreviewManager.removeSectionSlot) {
+                PreviewManager.removeSectionSlot(section);
+            }
+        },
+        cleanupUnusedSlots: () => {
+            if (PreviewManager.cleanupUnusedSlots) {
+                PreviewManager.cleanupUnusedSlots();
+            }
+        },
         prepareForLiveExtraction: () => {
             if (PreviewManager.prepareForLiveExtraction) {
                 PreviewManager.prepareForLiveExtraction();

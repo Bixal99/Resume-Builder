@@ -163,12 +163,18 @@ document.addEventListener('DOMContentLoaded', () => {
                 updateExtractionBanner(5, '⚡ AI Extracting Resume Text...', `Reading "${file.name}" (${(file.size / 1024).toFixed(1)} KB)`);
             }
 
+            // Suspend background server preview calls while live extraction streams
+            if (typeof PreviewManager !== 'undefined' && PreviewManager.setLiveExtractionActive) {
+                PreviewManager.setLiveExtractionActive(true);
+            }
+
             // Prepare live RHS preview with visual placeholder slots ready for streaming
             if (typeof PreviewManager !== 'undefined' && PreviewManager.prepareForLiveExtraction) {
                 PreviewManager.prepareForLiveExtraction();
             }
 
             const placedSet = new Set();
+            const streamedSections = new Set();
 
             try {
                 const parsedData = await API.parseResumeStream(file, (progress) => {
@@ -215,6 +221,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     } else if (progress.event === 'skill_item') {
                         const skill = progress.skill;
                         if (skill && skill.name) {
+                            streamedSections.add('skills');
                             const sName = skill.name.trim();
 
                             // 1. Central store update (avoid duplicates)
@@ -249,6 +256,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         const section = progress.section;
                         const item = progress.item;
                         if (section && item) {
+                            streamedSections.add(section);
                             // 1. Central store update (avoid duplicates by key fields)
                             const currentList = ResumeStore.get(section) || [];
                             let isDuplicate = false;
@@ -296,9 +304,18 @@ document.addEventListener('DOMContentLoaded', () => {
                         const section = progress.section;
                         const data = progress.data;
 
-                        // Skills are streamed one-by-one live; avoid bulk overwrite during stream
-                        if (section === 'skills') {
-                            ResumeStore.set('skills', data);
+                        // If empty array, remove any placeholder slot for this section
+                        if (!data || data.length === 0) {
+                            if (typeof PreviewManager !== 'undefined' && PreviewManager.removeSectionSlot) {
+                                PreviewManager.removeSectionSlot(section);
+                            }
+                            ResumeStore.set(section, []);
+                            return;
+                        }
+
+                        // Skills and any array section already placed item-by-item live should NOT be bulk overwritten
+                        if (section === 'skills' || streamedSections.has(section)) {
+                            ResumeStore.set(section, data);
                             return;
                         }
 
@@ -331,6 +348,9 @@ document.addEventListener('DOMContentLoaded', () => {
                             );
                         }
                     } else if (progress.event === 'complete') {
+                        if (typeof PreviewManager !== 'undefined' && PreviewManager.cleanupUnusedSlots) {
+                            PreviewManager.cleanupUnusedSlots();
+                        }
                         updateExtractionBanner(100, '✓ All Fields Placed into Template!', 'Validation complete. Applying full resume...');
                     }
                 });
@@ -340,9 +360,11 @@ document.addEventListener('DOMContentLoaded', () => {
                     ResumeStore.set(parsedData);
                     ResumeStore.save();
 
-                    // Pixel-perfect refresh of preview from Jinja2 engine
-                    if (typeof PreviewManager !== 'undefined' && PreviewManager.refresh) {
-                        PreviewManager.refresh();
+                    // Re-enable live extraction updates & refresh preview immediately
+                    if (typeof PreviewManager !== 'undefined') {
+                        if (PreviewManager.cleanupUnusedSlots) PreviewManager.cleanupUnusedSlots();
+                        if (PreviewManager.setLiveExtractionActive) PreviewManager.setLiveExtractionActive(false);
+                        if (PreviewManager.refresh) PreviewManager.refresh(true);
                     }
 
                     // Re-render personal step (step 0) so all inputs and fields reflect validated data
@@ -387,6 +409,9 @@ document.addEventListener('DOMContentLoaded', () => {
                     showToast(`Resume import error: ${err.message || 'Unknown error'}`, 'error');
                 }
             } finally {
+                if (typeof PreviewManager !== 'undefined' && PreviewManager.setLiveExtractionActive) {
+                    PreviewManager.setLiveExtractionActive(false);
+                }
                 btnAiImport.disabled = false;
                 btnAiImport.innerHTML = originalHtml;
                 aiImportInput.value = '';
