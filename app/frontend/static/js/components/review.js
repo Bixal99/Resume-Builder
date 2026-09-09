@@ -38,7 +38,7 @@ const ReviewComponent = (() => {
                         <span style="font-size: 20px;">🎯</span>
                         <h3 style="margin: 0; font-size: 16px; font-weight: 700; color: var(--color-text);">Live ATS Keyword Matcher</h3>
                     </div>
-                    <span style="font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; background: var(--color-accent-light, #e0e7ff); color: var(--color-accent, #4f46e5);">Instant Analysis</span>
+                    <span style="font-size: 11px; font-weight: 600; padding: 3px 8px; border-radius: 6px; background: #ede9fe; color: #4338ca; border: 1px solid #c7d2fe;">Instant Analysis</span>
                 </div>
                 <p style="font-size: 13px; color: var(--color-text-secondary); margin-bottom: 12px; line-height: 1.4;">
                     Paste a job description below to calculate your keyword match score, uncover missing terms, and optimize for recruiter filters.

@@ -886,6 +886,7 @@
 
 #btn-clear-data:hover {
     opacity: 1;
+    color: var(--color-danger);
     background: rgba(239, 68, 68, 0.06);
 }
 
@@ -926,6 +927,13 @@
 .tags-input-container .tag-primary:hover {
     background: rgba(108, 99, 255, 0.14);
     border-color: rgba(108, 99, 255, 0.25);
+}
+
+.btn-skill-suggestion:hover {
+    background: #ede9fe !important;
+    border-color: var(--color-accent) !important;
+    color: #4338ca !important;
+    transform: translateY(-1px);
 }
 
 /* --- Entry card polish --- */
@@ -1146,7 +1154,7 @@
 
 .btn-star-polish:hover {
     background: linear-gradient(135deg, #6366f1, #8b5cf6);
-    color: white;
+    color: #ffffff !important;
     border-color: transparent;
     transform: translateY(-1px);
     box-shadow: 0 2px 8px rgba(99, 102, 241, 0.25);

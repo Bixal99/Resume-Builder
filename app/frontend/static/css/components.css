@@ -23,13 +23,16 @@
 
 .btn-primary {
     background: linear-gradient(135deg, var(--color-accent), var(--color-accent-dark));
-    color: var(--text-on-accent);
+    color: var(--text-on-accent) !important;
     box-shadow: 0 4px 15px var(--color-accent-glow);
 }
 
-.btn-primary:hover {
+.btn-primary:hover,
+.btn-primary:focus,
+.btn-primary:active {
     transform: translateY(-2px);
     box-shadow: 0 8px 25px var(--color-accent-glow);
+    color: var(--text-on-accent) !important;
 }
 
 .btn-secondary {
@@ -38,9 +41,11 @@
     border: 1px solid var(--color-gray-200);
 }
 
-.btn-secondary:hover {
+.btn-secondary:hover,
+.btn-secondary:focus {
     background: var(--color-gray-100);
     border-color: var(--color-gray-300);
+    color: var(--text-primary) !important;
 }
 
 .btn-outline {
@@ -49,9 +54,12 @@
     border: 2px solid var(--color-accent);
 }
 
-.btn-outline:hover {
-    background: var(--color-accent);
-    color: var(--text-on-accent);
+.btn-outline:hover,
+.btn-outline:focus,
+.btn-outline:active {
+    background: var(--color-accent) !important;
+    border-color: var(--color-accent) !important;
+    color: var(--text-on-accent) !important;
 }
 
 .btn-ghost {
@@ -60,18 +68,22 @@
     padding: var(--space-2) var(--space-4);
 }
 
-.btn-ghost:hover {
+.btn-ghost:hover,
+.btn-ghost:focus {
     background: var(--color-gray-100);
-    color: var(--text-primary);
+    color: var(--text-primary) !important;
 }
 
 .btn-danger {
     background: var(--color-danger);
-    color: white;
+    color: #ffffff !important;
 }
 
-.btn-danger:hover {
-    background: #dc2626;
+.btn-danger:hover,
+.btn-danger:focus,
+.btn-danger:active {
+    background: #dc2626 !important;
+    color: #ffffff !important;
 }
 
 .btn-lg {
@@ -287,6 +299,21 @@
 .badge-warning {
     background: rgba(245, 158, 11, 0.1);
     color: var(--color-warning);
+}
+
+.badge-primary {
+    background: #ede9fe;
+    color: #4338ca;
+}
+
+.badge-info {
+    background: #eff6ff;
+    color: #1d4ed8;
+}
+
+.badge-danger {
+    background: #fef2f2;
+    color: #dc2626;
 }
 
 /* === STEPPER === */
@@ -607,19 +634,30 @@
 .profiles-modal-card {
     max-width: 580px !important;
     width: 92% !important;
+    max-height: 90vh !important;
+    display: flex !important;
+    flex-direction: column !important;
+    overflow: hidden !important;
     padding: 24px !important;
     border-radius: 16px !important;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.12), 0 0 0 1px rgba(0, 0, 0, 0.05) !important;
 }
 
+.profiles-modal-card .custom-modal-header {
+    flex-shrink: 0;
+    margin-bottom: 12px;
+}
+
 .profiles-list-container {
-    max-height: 360px;
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: 52vh;
     overflow-y: auto;
     margin-bottom: var(--space-3);
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding-right: 2px;
+    padding-right: 4px;
 }
 
 .profile-list-item {
@@ -936,6 +974,7 @@
 
 .btn-danger:hover {
     background: #dc2626 !important;
+    color: #ffffff !important;
     box-shadow: 0 2px 8px rgba(239, 68, 68, 0.25);
 }
 

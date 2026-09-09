@@ -74,7 +74,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         <div style="flex: 1; padding-right: 10px;">
                             <div style="display: flex; align-items: center; gap: 6px; margin-bottom: 2px;">
                                 <span style="font-weight: 600; font-size: 13px; color: var(--color-text);">${s.name}</span>
-                                <span style="font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: var(--color-accent-light, #e0e7ff); color: var(--color-accent, #4f46e5);">${s.badge}</span>
+                                <span style="font-size: 10px; font-weight: 600; padding: 2px 6px; border-radius: 4px; background: #ede9fe; color: #4338ca; border: 1px solid #ddd6fe;">${s.badge}</span>
                             </div>
                             <div style="font-size: 11px; color: var(--color-text-secondary); line-height: 1.3;">${s.description}</div>
                         </div>

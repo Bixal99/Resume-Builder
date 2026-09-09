@@ -53,7 +53,7 @@
                 Import JSON
             </button>
             <input type="file" id="json-import-input" accept=".json" style="display: none;">
-            <button class="btn btn-primary btn-sm" id="btn-ai-import" title="Auto-fill with AI" style="background-color: var(--color-accent); border-color: var(--color-accent);">
+            <button class="btn btn-primary btn-sm" id="btn-ai-import" title="Auto-fill with AI">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
                 Auto-fill from PDF
             </button>
@@ -167,8 +167,8 @@
 
     <!-- AI STAR Bullet Point Optimizer Modal (Bullet Point Quality) -->
     <div class="custom-modal-overlay" id="star-optimizer-modal">
-        <div class="custom-modal-card star-optimizer-card" style="max-width: 580px; width: 92%; background: white; border-radius: 16px; padding: 22px;">
-            <div class="custom-modal-header" style="border-bottom: 1px solid var(--color-border); padding-bottom: 10px;">
+        <div class="custom-modal-card star-optimizer-card" style="max-width: 580px; width: 92%; max-height: 90vh; display: flex; flex-direction: column; overflow: hidden; background: white; border-radius: 16px; padding: 22px;">
+            <div class="custom-modal-header" style="border-bottom: 1px solid var(--color-border); padding-bottom: 10px; flex-shrink: 0;">
                 <div style="display: flex; align-items: center; gap: 10px;">
                     <span style="font-size: 22px;">✨</span>
                     <div>
@@ -178,7 +178,7 @@
                 </div>
                 <button class="btn-close-modal" id="star-optimizer-close" style="background:none; border:none; font-size: 24px; cursor: pointer; color: var(--color-text-secondary);">&times;</button>
             </div>
-            <div style="padding: 14px 0 6px 0;">
+            <div style="padding: 14px 0 6px 0; overflow-y: auto; flex: 1 1 auto; min-height: 0;">
                 <div style="margin-bottom: 12px;">
                     <label style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--color-text-secondary); display: block; margin-bottom: 4px;">Original Bullet Point</label>
                     <div id="star-original-bullet" style="font-size: 13px; padding: 9px 12px; background: var(--color-bg-subtle, #f8fafc); border-radius: 6px; border: 1px solid var(--color-border); font-style: italic; color: var(--color-text);">
