@@ -136,6 +136,22 @@ def clean_dict(d):
         return d
 
 
+def normalize_skill_category(cat: str) -> str:
+    if not cat:
+        return "Technical Skills"
+    c = str(cat).strip().rstrip(":").lower()
+    c = c.replace("&amp;", "&").replace("  ", " ")
+    if any(k in c for k in ("framework", "framwork", "librar")):
+        return "Frameworks & Libraries"
+    if any(k in c for k in ("tool", "platform", "devops")):
+        return "Tools & Platforms"
+    if any(k in c for k in ("soft", "interpersonal", "management")):
+        return "Soft Skills"
+    if any(k in c for k in ("tech", "language", "coding", "program", "competenc")):
+        return "Technical Skills"
+    return str(cat).strip().rstrip(":")
+
+
 def build_skill_category_map(raw_text: str):
     """
     Scans the raw resume text for explicit skills section headers and subcategories.
@@ -168,7 +184,7 @@ def build_skill_category_map(raw_text: str):
             cat_name = m.group(1).strip()
             # Ignore non-skill headers
             if cat_name.lower() not in ("email", "phone", "address", "date", "gpa", "degree", "title"):
-                current_cat = cat_name
+                current_cat = normalize_skill_category(cat_name)
                 if current_cat not in cat_headers:
                     cat_headers.append(current_cat)
                 rest = m.group(2).strip()
@@ -259,21 +275,6 @@ def split_degree_and_field(degree: str, field_of_study: str):
         return normalize_degree_name(d), f
 
     return normalize_degree_name(degree), field
-
-
-def normalize_skill_category(cat: str) -> str:
-    if not cat:
-        return "Technical Skills"
-    c = str(cat).strip().rstrip(":").lower()
-    if c in ("technical", "technical skills", "skills", "tech", "programming", "languages", "programming languages", "coding", "core competencies", "technical proficiencies"):
-        return "Technical Skills"
-    if c in ("framework", "frameworks", "libraries", "frameworks & libraries", "frameworks and libraries", "frameworks & tools", "framework & library"):
-        return "Frameworks & Libraries"
-    if c in ("tool", "tools", "tools & platforms", "tools and platforms", "platforms", "developer tools", "technologies", "devops", "software", "environment"):
-        return "Tools & Platforms"
-    if c in ("soft", "soft skills", "interpersonal", "interpersonal skills", "professional skills", "management"):
-        return "Soft Skills"
-    return str(cat).strip().rstrip(":")
 
 
 def post_process_json(parsed_json, raw_text: str = None):
@@ -462,6 +463,8 @@ def stream_parse_resume_with_llm(text: str):
             emitted_sections = set()
             emitted_skills_count = 0
             emitted_skills_names = set()
+            emitted_section_items_count = {s: 0 for s in ["experience", "education", "projects", "certifications", "languages"]}
+            emitted_section_items_keys = {s: set() for s in ["experience", "education", "projects", "certifications", "languages"]}
             current_pct = 10
 
             def calc_progress() -> int:
@@ -470,8 +473,9 @@ def stream_parse_resume_with_llm(text: str):
                 char_part = min(35.0, (chars_count / 2500.0) * 35.0)
                 # Single string fields (contact info, titles, summary): up to 15%
                 field_part = min(15.0, len(emitted_string_fields) * 1.5)
-                # Array sections (experience, education, projects, etc.): up to 20%
-                section_part = min(20.0, len(emitted_sections) * 4.5)
+                # Array sections item count: up to 20%
+                items_count = sum(len(keys) for keys in emitted_section_items_keys.values())
+                section_part = min(20.0, items_count * 2.5)
                 # Individual skills parsed: up to 12%
                 skill_part = min(12.0, len(emitted_skills_names) * 1.0)
 
@@ -610,49 +614,110 @@ def stream_parse_resume_with_llm(text: str):
                                     "pct": calc_progress()
                                 }
 
-                    # Check for completed array sections
+                    # Incremental extraction of ARRAY SECTION ITEMS (projects, experience, education, etc.) one by one
                     for section in array_sections:
-                        if section not in emitted_sections:
-                            sec_match = re.search(rf'"{section}"\s*:\s*\[', raw_buffer)
-                            if sec_match:
-                                start_idx = sec_match.end() - 1
-                                depth = 0
-                                in_string = False
-                                escape = False
-                                for j in range(start_idx, len(raw_buffer)):
-                                    c = raw_buffer[j]
-                                    if escape:
-                                        escape = False
-                                        continue
-                                    if c == '\\':
-                                        escape = True
-                                        continue
-                                    if c == '"':
-                                        in_string = not in_string
-                                        continue
-                                    if not in_string:
-                                        if c == '[':
-                                            depth += 1
-                                        elif c == ']':
-                                            depth -= 1
-                                            if depth == 0:
-                                                json_str = raw_buffer[start_idx:j+1]
-                                                try:
-                                                    arr_data = json.loads(json_str)
-                                                    if arr_data and isinstance(arr_data, list) and len(arr_data) > 0:
-                                                        emitted_sections.add(section)
-                                                        processed_obj = post_process_json({section: arr_data}, raw_text=text)
-                                                        cleaned_arr = processed_obj.get(section, arr_data)
-                                                        yield {
-                                                            "event": "section_update",
-                                                            "section": section,
-                                                            "data": cleaned_arr,
-                                                            "label": f"Placed {len(cleaned_arr)} {section.title()} items",
-                                                            "pct": calc_progress()
-                                                        }
-                                                except Exception:
-                                                    pass
-                                                break
+                        sec_match = re.search(rf'"{section}"\s*:\s*\[', raw_buffer)
+                        if not sec_match:
+                            continue
+
+                        arr_start = sec_match.end()
+                        in_s = False
+                        esc = False
+                        d = 0
+                        item_start = None
+                        idx = arr_start
+                        buf_len = len(raw_buffer)
+                        completed_items = []
+                        array_finished = False
+
+                        while idx < buf_len:
+                            ch = raw_buffer[idx]
+                            if esc:
+                                esc = False
+                                idx += 1
+                                continue
+                            if ch == '\\':
+                                esc = True
+                                idx += 1
+                                continue
+                            if ch == '"':
+                                in_s = not in_s
+                                idx += 1
+                                continue
+                            if not in_s:
+                                if ch == '{':
+                                    if d == 0:
+                                        item_start = idx
+                                    d += 1
+                                elif ch == '}':
+                                    d -= 1
+                                    if d == 0 and item_start is not None:
+                                        raw_item = raw_buffer[item_start:idx+1]
+                                        try:
+                                            item_obj = json.loads(raw_item)
+                                            if isinstance(item_obj, dict) and any(item_obj.values()):
+                                                completed_items.append(item_obj)
+                                        except Exception:
+                                            pass
+                                        item_start = None
+                                elif ch == ']':
+                                    if d == 0:
+                                        array_finished = True
+                                        break
+                            idx += 1
+
+                        # Yield newly completed items one-by-one!
+                        while emitted_section_items_count[section] < len(completed_items):
+                            raw_item_obj = completed_items[emitted_section_items_count[section]]
+                            emitted_section_items_count[section] += 1
+
+                            processed_single = post_process_json({section: [raw_item_obj]}, raw_text=text)
+                            cleaned_list = processed_single.get(section, [raw_item_obj])
+                            if cleaned_list and len(cleaned_list) > 0:
+                                cleaned_item = cleaned_list[0]
+                                if section == 'projects':
+                                    item_key = (cleaned_item.get('title') or '').strip().lower()
+                                    item_title = cleaned_item.get('title') or 'Project'
+                                elif section == 'experience':
+                                    item_key = f"{cleaned_item.get('company', '')}_{cleaned_item.get('position', '')}".strip().lower()
+                                    item_title = f"{cleaned_item.get('position', '')} at {cleaned_item.get('company', '')}".strip(' at') or 'Experience'
+                                elif section == 'education':
+                                    item_key = f"{cleaned_item.get('institution', '')}_{cleaned_item.get('degree', '')}".strip().lower()
+                                    item_title = f"{cleaned_item.get('degree', '')} ({cleaned_item.get('institution', '')})".strip(' ()') or 'Education'
+                                elif section == 'certifications':
+                                    item_key = (cleaned_item.get('name') or '').strip().lower()
+                                    item_title = cleaned_item.get('name') or 'Certification'
+                                elif section == 'languages':
+                                    item_key = (cleaned_item.get('name') or '').strip().lower()
+                                    item_title = cleaned_item.get('name') or 'Language'
+                                else:
+                                    item_key = str(cleaned_item)
+                                    item_title = section.title()
+
+                                if item_key and item_key not in emitted_section_items_keys[section]:
+                                    emitted_section_items_keys[section].add(item_key)
+                                    singular_label = section[:-1].title() if section.endswith('s') else section.title()
+                                    yield {
+                                        "event": "section_item",
+                                        "section": section,
+                                        "item": cleaned_item,
+                                        "index": len(emitted_section_items_keys[section]),
+                                        "label": f"Placed {singular_label}: {item_title}",
+                                        "pct": calc_progress()
+                                    }
+
+                        # When array closes (']'), emit section_update if not emitted yet
+                        if array_finished and section not in emitted_sections:
+                            emitted_sections.add(section)
+                            processed_obj = post_process_json({section: completed_items}, raw_text=text)
+                            cleaned_arr = processed_obj.get(section, completed_items)
+                            yield {
+                                "event": "section_update",
+                                "section": section,
+                                "data": cleaned_arr,
+                                "label": f"Placed {len(cleaned_arr)} {section.title()} items",
+                                "pct": calc_progress()
+                            }
 
                     yield {"event": "token", "stage": 3, "chars": chars_count, "chunk": content, "pct": calc_progress()}
 

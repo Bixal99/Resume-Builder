@@ -517,18 +517,19 @@ const PreviewManager = (() => {
 
         function normalizePreviewSkillCategory(cat) {
             if (!cat) return 'Technical Skills';
-            const c = String(cat).trim().replace(/[:]+$/, '').toLowerCase();
-            if (['technical', 'technical skills', 'skills', 'tech', 'programming', 'languages', 'programming languages', 'coding', 'core competencies', 'technical proficiencies'].includes(c)) {
-                return 'Technical Skills';
-            }
-            if (['framework', 'frameworks', 'libraries', 'frameworks & libraries', 'frameworks and libraries', 'frameworks & tools', 'framework & library'].includes(c)) {
+            let c = String(cat).trim().replace(/[:]+$/, '').toLowerCase();
+            c = c.replace(/&amp;/g, '&').replace(/\s+/g, ' ');
+            if (c.includes('framework') || c.includes('framwork') || c.includes('librar')) {
                 return 'Frameworks & Libraries';
             }
-            if (['tool', 'tools', 'tools & platforms', 'tools and platforms', 'platforms', 'developer tools', 'technologies', 'devops', 'software', 'environment'].includes(c)) {
+            if (c.includes('tool') || c.includes('platform') || c.includes('devops')) {
                 return 'Tools & Platforms';
             }
-            if (['soft', 'soft skills', 'interpersonal', 'interpersonal skills', 'professional skills', 'management'].includes(c)) {
+            if (c.includes('soft') || c.includes('interpersonal') || c.includes('management')) {
                 return 'Soft Skills';
+            }
+            if (c.includes('tech') || c.includes('language') || c.includes('coding') || c.includes('program') || c.includes('competenc')) {
+                return 'Technical Skills';
             }
             return String(cat).trim().replace(/[:]+$/, '');
         }
@@ -1025,9 +1026,117 @@ const PreviewManager = (() => {
             }
         }
 
+        function addSectionItemDirectly(section, item) {
+            if (!iframe || !section || !item) return;
+            try {
+                const doc = iframe.contentDocument || iframe.contentWindow.document;
+                if (!doc) return;
+                injectHighlightStyles(doc);
+
+                const page = doc.querySelector('.resume-page') || doc.body;
+
+                // Remove placeholder slot for this section
+                const slot = doc.querySelector(`.live-slot-placeholder[data-slot="${section}"]`);
+                if (slot) slot.remove();
+
+                const sectionTitles = {
+                    experience: 'Work Experience',
+                    education: 'Education',
+                    projects: 'Projects',
+                    skills: 'Skills',
+                    certifications: 'Certifications',
+                    languages: 'Languages',
+                    awards: 'Honors & Awards',
+                    volunteer: 'Volunteer Experience',
+                    references: 'References'
+                };
+
+                let secEl = page.querySelector(`[data-section-type="${section}"]`);
+                if (!secEl) {
+                    secEl = doc.createElement('section');
+                    secEl.className = 'resume-section';
+                    secEl.setAttribute('data-section-type', section);
+                    const title = sectionTitles[section] || (section.charAt(0).toUpperCase() + section.slice(1));
+                    secEl.innerHTML = `
+                        <h2 class="section-title">${title}</h2>
+                        <div class="section-content"></div>
+                    `;
+                    page.appendChild(secEl);
+                }
+
+                let contentEl = secEl.querySelector('.section-content');
+                if (!contentEl) {
+                    contentEl = doc.createElement('div');
+                    contentEl.className = 'section-content';
+                    secEl.appendChild(contentEl);
+                }
+
+                let itemHtml = '';
+                if (section === 'projects') {
+                    const title = (item.title || '').trim().toLowerCase();
+                    if (title && contentEl.innerText.toLowerCase().includes(title)) return;
+                    itemHtml = renderDocProjectEntry(item);
+                } else if (section === 'experience') {
+                    if (item.company && contentEl.innerText.toLowerCase().includes(item.company.toLowerCase()) &&
+                        item.position && contentEl.innerText.toLowerCase().includes(item.position.toLowerCase())) {
+                        return;
+                    }
+                    itemHtml = renderDocExperienceEntry(item);
+                } else if (section === 'education') {
+                    if (item.institution && contentEl.innerText.toLowerCase().includes(item.institution.toLowerCase())) {
+                        return;
+                    }
+                    itemHtml = renderDocEducationEntry(item);
+                } else if (section === 'certifications') {
+                    if (item.name && contentEl.innerText.toLowerCase().includes(item.name.toLowerCase())) {
+                        return;
+                    }
+                    itemHtml = renderDocCertificationEntry(item);
+                } else if (section === 'languages') {
+                    let langList = contentEl.querySelector('.languages-list');
+                    if (!langList) {
+                        langList = doc.createElement('div');
+                        langList.className = 'languages-list';
+                        langList.style.cssText = 'display: flex; flex-wrap: wrap; gap: 8px;';
+                        contentEl.appendChild(langList);
+                    }
+                    const lName = (item.name || '').trim();
+                    if (langList.innerText.toLowerCase().includes(lName.toLowerCase())) return;
+                    const tag = doc.createElement('span');
+                    tag.className = 'tag template-field-highlight';
+                    tag.textContent = `${lName}${item.fluency ? ` (${item.fluency})` : ''}`;
+                    langList.appendChild(tag);
+                    triggerElHighlight(tag);
+                    return;
+                } else {
+                    itemHtml = `
+                        <div class="entry">
+                            <h3 class="entry-title">${escapeDocHtml(item.title || item.name || item.role || item.organization || '')}</h3>
+                            ${item.description ? `<div class="entry-description">${escapeDocHtml(item.description)}</div>` : ''}
+                        </div>
+                    `;
+                }
+
+                if (!itemHtml) return;
+
+                const tempDiv = doc.createElement('div');
+                tempDiv.innerHTML = itemHtml.trim();
+                const newEntry = tempDiv.firstElementChild;
+                if (newEntry) {
+                    newEntry.classList.add('template-field-highlight');
+                    contentEl.appendChild(newEntry);
+                    attachExternalLinkDelegation(doc);
+                    triggerElHighlight(newEntry);
+                }
+            } catch (e) {
+                console.warn('addSectionItemDirectly error:', e);
+            }
+        }
+
         PreviewManager.prepareForLiveExtraction = prepareForLiveExtraction;
         PreviewManager.updateFieldDirectly = updateFieldDirectly;
         PreviewManager.updateSectionDirectly = updateSectionDirectly;
+        PreviewManager.addSectionItemDirectly = addSectionItemDirectly;
         PreviewManager.addSkillDirectly = addSkillDirectly;
         PreviewManager.highlightField = triggerElHighlight;
     }
@@ -1050,6 +1159,11 @@ const PreviewManager = (() => {
         updateSectionDirectly: (section, data) => {
             if (PreviewManager.updateSectionDirectly) {
                 PreviewManager.updateSectionDirectly(section, data);
+            }
+        },
+        addSectionItemDirectly: (section, item) => {
+            if (PreviewManager.addSectionItemDirectly) {
+                PreviewManager.addSectionItemDirectly(section, item);
             }
         },
         addSkillDirectly: (skill) => {

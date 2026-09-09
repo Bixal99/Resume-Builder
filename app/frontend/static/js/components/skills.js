@@ -12,18 +12,19 @@ const SkillsComponent = (() => {
 
     function matchCategory(skillCat, catId) {
         if (!skillCat) return catId === 'technical';
-        const c = String(skillCat).trim().replace(/[:]+$/, '').toLowerCase();
+        let c = String(skillCat).trim().replace(/[:]+$/, '').toLowerCase();
+        c = c.replace(/&amp;/g, '&').replace(/\s+/g, ' ');
         if (catId === 'technical') {
-            return ['technical', 'technical skills', 'skills', 'tech', 'programming', 'languages', 'programming languages', 'coding', 'core competencies', 'technical proficiencies'].includes(c);
+            return ['technical', 'technical skills', 'skills', 'tech', 'programming', 'languages', 'programming languages', 'coding', 'core competencies', 'technical proficiencies'].includes(c) || c.includes('tech') || c.includes('language') || c.includes('coding') || c.includes('program') || c.includes('competenc');
         }
         if (catId === 'framework') {
-            return ['framework', 'frameworks', 'libraries', 'frameworks & libraries', 'frameworks and libraries', 'frameworks & tools', 'framework & library'].includes(c);
+            return c.includes('framework') || c.includes('framwork') || c.includes('librar');
         }
         if (catId === 'tool') {
-            return ['tool', 'tools', 'tools & platforms', 'tools and platforms', 'platforms', 'developer tools', 'technologies', 'devops', 'software', 'environment'].includes(c);
+            return c.includes('tool') || c.includes('platform') || c.includes('devops');
         }
         if (catId === 'soft') {
-            return ['soft', 'soft skills', 'interpersonal', 'interpersonal skills', 'professional skills', 'management'].includes(c);
+            return c.includes('soft') || c.includes('interpersonal') || c.includes('management');
         }
         return c === String(catId).trim().toLowerCase();
     }
@@ -911,20 +912,41 @@ const SkillsComponent = (() => {
             }
         });
 
+        let isClickingSuggestion = false;
+
         // Blur handler: add any pending typed skill on focus loss
         container.addEventListener('focusout', (e) => {
             if (e.target.classList.contains('skill-input')) {
-                const val = e.target.value.trim();
-                const cat = e.target.dataset.category;
+                // If focus moved to or user interacted with a suggestion chip, do NOT commit partial text!
+                if (isClickingSuggestion || (e.relatedTarget && e.relatedTarget.closest('.btn-skill-suggestion'))) {
+                    return;
+                }
+                const input = e.target;
+                const val = input.value.trim();
+                const cat = input.dataset.category;
                 if (val) {
-                    e.target.value = '';
+                    input.value = '';
                     addSkillsBulk(container, cat, val);
                 }
             }
         });
 
-        // Pointerdown / Mousedown on remove button: stop propagation immediately so Sortable never intercepts!
+        // Pointerdown / Mousedown on remove button or suggestion button:
+        // CRITICAL: e.preventDefault() on suggestion buttons prevents the input from blurring and committing partial text!
         container.addEventListener('pointerdown', (e) => {
+            const sugBtn = e.target.closest('.btn-skill-suggestion');
+            if (sugBtn) {
+                isClickingSuggestion = true;
+                e.preventDefault();
+                e.stopPropagation();
+                const val = sugBtn.dataset.value;
+                const cat = sugBtn.dataset.category;
+                const input = container.querySelector(`.skill-input[data-category="${cat}"]`);
+                if (input) input.value = '';
+                addSkillsBulk(container, cat, val);
+                setTimeout(() => { isClickingSuggestion = false; }, 300);
+                return;
+            }
             const removeBtn = e.target.closest('.tag-remove');
             if (removeBtn) {
                 e.stopPropagation();
@@ -932,6 +954,19 @@ const SkillsComponent = (() => {
         }, true);
 
         container.addEventListener('mousedown', (e) => {
+            const sugBtn = e.target.closest('.btn-skill-suggestion');
+            if (sugBtn) {
+                isClickingSuggestion = true;
+                e.preventDefault();
+                e.stopPropagation();
+                const val = sugBtn.dataset.value;
+                const cat = sugBtn.dataset.category;
+                const input = container.querySelector(`.skill-input[data-category="${cat}"]`);
+                if (input) input.value = '';
+                addSkillsBulk(container, cat, val);
+                setTimeout(() => { isClickingSuggestion = false; }, 300);
+                return;
+            }
             const removeBtn = e.target.closest('.tag-remove');
             if (removeBtn) {
                 e.stopPropagation();
@@ -951,14 +986,18 @@ const SkillsComponent = (() => {
                 return;
             }
 
-            // 2. Click suggestion chip
+            // 2. Click suggestion chip fallback
             const sugBtn = e.target.closest('.btn-skill-suggestion');
             if (sugBtn) {
+                isClickingSuggestion = true;
                 e.preventDefault();
                 e.stopPropagation();
                 const val = sugBtn.dataset.value;
                 const cat = sugBtn.dataset.category;
+                const input = container.querySelector(`.skill-input[data-category="${cat}"]`);
+                if (input) input.value = '';
                 addSkillsBulk(container, cat, val);
+                setTimeout(() => { isClickingSuggestion = false; }, 300);
                 return;
             }
         });

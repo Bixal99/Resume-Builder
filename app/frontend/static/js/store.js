@@ -49,18 +49,19 @@ const ResumeStore = (() => {
 
     function normalizeSkillCategory(cat) {
         if (!cat) return 'Technical Skills';
-        const c = String(cat).trim().replace(/[:]+$/, '').toLowerCase();
-        if (['technical', 'technical skills', 'skills', 'tech', 'programming', 'languages', 'programming languages', 'coding', 'core competencies', 'technical proficiencies'].includes(c)) {
-            return 'Technical Skills';
-        }
-        if (['framework', 'frameworks', 'libraries', 'frameworks & libraries', 'frameworks and libraries', 'frameworks & tools', 'framework & library'].includes(c)) {
+        let c = String(cat).trim().replace(/[:]+$/, '').toLowerCase();
+        c = c.replace(/&amp;/g, '&').replace(/\s+/g, ' ');
+        if (c.includes('framework') || c.includes('framwork') || c.includes('librar')) {
             return 'Frameworks & Libraries';
         }
-        if (['tool', 'tools', 'tools & platforms', 'tools and platforms', 'platforms', 'developer tools', 'technologies', 'devops', 'software', 'environment'].includes(c)) {
+        if (c.includes('tool') || c.includes('platform') || c.includes('devops')) {
             return 'Tools & Platforms';
         }
-        if (['soft', 'soft skills', 'interpersonal', 'interpersonal skills', 'professional skills', 'management'].includes(c)) {
+        if (c.includes('soft') || c.includes('interpersonal') || c.includes('management')) {
             return 'Soft Skills';
+        }
+        if (c.includes('tech') || c.includes('language') || c.includes('coding') || c.includes('program') || c.includes('competenc')) {
+            return 'Technical Skills';
         }
         return String(cat).trim().replace(/[:]+$/, '');
     }

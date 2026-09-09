@@ -245,6 +245,53 @@ document.addEventListener('DOMContentLoaded', () => {
                                 }
                             }
                         }
+                    } else if (progress.event === 'section_item') {
+                        const section = progress.section;
+                        const item = progress.item;
+                        if (section && item) {
+                            // 1. Central store update (avoid duplicates by key fields)
+                            const currentList = ResumeStore.get(section) || [];
+                            let isDuplicate = false;
+                            if (section === 'projects') {
+                                isDuplicate = currentList.some(p => p.title && item.title && p.title.trim().toLowerCase() === item.title.trim().toLowerCase());
+                            } else if (section === 'experience') {
+                                isDuplicate = currentList.some(e => e.company && item.company && e.company.trim().toLowerCase() === item.company.trim().toLowerCase() && e.position === item.position);
+                            } else if (section === 'education') {
+                                isDuplicate = currentList.some(e => e.institution && item.institution && e.institution.trim().toLowerCase() === item.institution.trim().toLowerCase());
+                            } else if (section === 'certifications') {
+                                isDuplicate = currentList.some(c => c.name && item.name && c.name.trim().toLowerCase() === item.name.trim().toLowerCase());
+                            } else if (section === 'languages') {
+                                isDuplicate = currentList.some(l => l.name && item.name && l.name.trim().toLowerCase() === item.name.trim().toLowerCase());
+                            }
+
+                            if (!isDuplicate) {
+                                currentList.push(item);
+                                ResumeStore.set(section, currentList);
+                            }
+
+                            // 2. Direct real-time visual injection into RHS preview DOM (one-by-one live!)
+                            if (typeof PreviewManager !== 'undefined' && PreviewManager.addSectionItemDirectly) {
+                                PreviewManager.addSectionItemDirectly(section, item);
+                            }
+
+                            // 3. Update placed chips and banner ticker
+                            const itemTitle = item.title || item.position || item.degree || item.name || `${section} entry`;
+                            const singularLabel = section.endsWith('s') ? section.slice(0, -1).toUpperCase() : section.toUpperCase();
+                            addPlacedFieldChip(`${singularLabel}: ${itemTitle}`, itemTitle);
+                            updateExtractionBanner(
+                                progress.pct,
+                                `⚡ Placed ${singularLabel}: ${itemTitle}...`,
+                                `✓ Placed ${singularLabel.toLowerCase()} "${itemTitle}" into template`
+                            );
+
+                            // 4. If current form step is on this section, re-render form step
+                            if (typeof StepperComponent !== 'undefined') {
+                                const cur = StepperComponent.getCurrentStep();
+                                if (cur && cur.id === section) {
+                                    StepperComponent.renderFormStep();
+                                }
+                            }
+                        }
                     } else if (progress.event === 'section_update') {
                         const section = progress.section;
                         const data = progress.data;
