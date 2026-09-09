@@ -2,12 +2,7 @@
 
 {% block content %}
 <!-- ===== HEADER: Name, Title, Contact ===== -->
-<header class="resume-header" style="text-align: center; margin-bottom: 2px;">
-    {% if resume.photo %}
-    <div class="header-photo" style="margin-bottom: 6px; display: flex; justify-content: center;">
-        <img src="{{ resume.photo }}" alt="Profile Photo" class="profile-photo" style="width: 68px; height: 68px; border-radius: 50%; object-fit: cover; border: 1.5px solid #222;" />
-    </div>
-    {% endif %}
+<header class="resume-header" style="position: relative; text-align: center; margin-bottom: 2px;">
     {% if has_personal %}
     <h1 class="resume-name" style="font-size: 14pt; margin: 0; font-family: 'Times New Roman', serif; text-transform: uppercase;">{{ full_name }}</h1>
     {% endif %}
@@ -29,6 +24,11 @@
         {% if resume.website %}{% set _ = contact_items.append('<a href="' ~ (resume.website | format_url) ~ '" target="_blank" rel="noopener noreferrer">Website</a>') %}{% endif %}
         
         {{ contact_items | join(' | ') | safe }}
+    </div>
+    {% endif %}
+    {% if resume.photo %}
+    <div class="header-photo" style="position: absolute; top: 0; right: 0;">
+        <img src="{{ resume.photo }}" alt="Profile Photo" class="profile-photo" style="width: 68px; height: 68px; border-radius: 50%; object-fit: cover; border: 1.5px solid #222;" />
     </div>
     {% endif %}
 </header>

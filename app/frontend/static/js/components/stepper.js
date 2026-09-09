@@ -162,6 +162,7 @@ const StepperComponent = (() => {
         getCurrentIndex,
         getTotalSteps,
         updateNavButtons,
+        renderFormStep,
         get STEPS() { return getSteps(); }
     };
 })();

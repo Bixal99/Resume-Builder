@@ -67,6 +67,31 @@
             flex-wrap: wrap !important;
         }
 
+        /* Profile Photo Placement: Top Right Side */
+        .resume-header {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: flex-start !important;
+            position: relative !important;
+        }
+        .header-content {
+            flex: 1 !important;
+        }
+        .header-photo {
+            order: 2 !important;
+            margin-left: auto !important;
+            flex-shrink: 0 !important;
+            display: flex !important;
+            justify-content: flex-end !important;
+            align-items: flex-start !important;
+        }
+        .profile-photo {
+            width: 76px !important;
+            height: 76px !important;
+            border-radius: 50% !important;
+            object-fit: cover !important;
+        }
+
         /* PDF Export Fixes for headless Chromium */
         @media print {
             .resume-page {

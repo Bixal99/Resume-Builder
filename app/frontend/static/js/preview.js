@@ -852,7 +852,7 @@ const PreviewManager = (() => {
                             if (!photoContainer) {
                                 photoContainer = doc.createElement('div');
                                 photoContainer.className = 'header-photo';
-                                header.insertBefore(photoContainer, header.firstChild);
+                                header.appendChild(photoContainer);
                             }
                             photoContainer.innerHTML = `<img src="${escapeDocHtml(value)}" alt="Profile Photo" class="profile-photo">`;
                             photoContainer.style.display = 'block';
