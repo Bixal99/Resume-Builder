@@ -322,8 +322,8 @@ ResuMate/
 ### 1. Clone repository
 
 ```bash
-git clone <your-repo-url>
-cd ResuMate
+git clone https://github.com/Bixal99/Resume-Builder.git
+cd Resume-Builder
 ```
 
 ### 2. Install dependencies
@@ -399,12 +399,25 @@ Then open [http://localhost:8000](http://localhost:8000).
 
 ---
 
-## Author
+## Authors & Contributors
 
-### Mohammad Bilal
+ResuMate was developed as a collaborative engineering project:
 
-Software Engineering Student  
-AI + Full Stack Developer
+### 🌟 Hasan Shakeel
+- **Role:** Base Architecture & Initial Foundation
+- **Contributions:**
+  - Designed the initial core backend service architecture and database schema foundation.
+  - Set up the base FastAPI routing, Pydantic schemas, and foundational data models.
+  - Implemented the early baseline studio layout and template rendering pipeline.
+
+### 🚀 Mohammad Bilal ([@Bixal99](https://github.com/Bixal99))
+- **Role:** Advanced Features, Neural Streaming Engine, Live UI/UX & Full-Stack Optimization
+- **Contributions:**
+  - Architected the real-time Server-Sent Events (SSE) neural parsing pipeline powered by Hugging Face (`Qwen 2.5-72B-Instruct` / `Llama 3.1-8B-Instruct`) and PyMuPDF.
+  - Built the real-time live preview DOM injection engine with animated pulse glows, shimmer skeleton placeholders, and progressive item-by-item streaming for work experiences, education, projects, and categorized skills.
+  - Developed the AI STAR Bullet Point Optimizer incorporating Google's XYZ formula across 4 optimization modes (*STAR*, *Executive*, *Technical*, *Quantified*).
+  - Engineered the client-side/server-side page budgeting engine (`/api/page-count`) and zero-drift vector PDF generation via Playwright Headless Chromium.
+  - Implemented multi-profile variant management, dark/light studio design system, extensive UI/UX polish, bug fixes, and continuous tweaking.
 
 ---
 
