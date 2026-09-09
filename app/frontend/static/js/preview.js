@@ -580,7 +580,7 @@ const PreviewManager = (() => {
             return `
                 <div class="skills-grid">
                     ${Object.entries(categories).map(([cat, names]) => `
-                        <div class="skill-category">
+                        <div class="skill-category" data-category-slug="${cat.toLowerCase().replace(/[^a-z0-9]/g, '')}">
                             <h4 class="skill-category-title">${formatSkillCategoryTitle(cat)}</h4>
                             <div class="skill-tags">
                                 ${names.map(n => `<span class="tag">${escapeDocHtml(n)}</span>`).join('')}
@@ -743,24 +743,6 @@ const PreviewManager = (() => {
                     sklSlot.setAttribute('data-slot', 'skills');
                     sklSlot.innerHTML = `<span class="slot-shimmer">⚡ Extracting Technical Skills...</span>`;
                     page.appendChild(sklSlot);
-                }
-
-                // Placeholder for Certifications
-                if (!page.querySelector('[data-section-type="certifications"]')) {
-                    const certSlot = doc.createElement('div');
-                    certSlot.className = 'live-slot-placeholder slot-section';
-                    certSlot.setAttribute('data-slot', 'certifications');
-                    certSlot.innerHTML = `<span class="slot-shimmer">⚡ Extracting Certifications...</span>`;
-                    page.appendChild(certSlot);
-                }
-
-                // Placeholder for Languages
-                if (!page.querySelector('[data-section-type="languages"]')) {
-                    const langSlot = doc.createElement('div');
-                    langSlot.className = 'live-slot-placeholder slot-section';
-                    langSlot.setAttribute('data-slot', 'languages');
-                    langSlot.innerHTML = `<span class="slot-shimmer">⚡ Extracting Languages...</span>`;
-                    page.appendChild(langSlot);
                 }
             } catch (e) {
                 console.warn('prepareForLiveExtraction error:', e);
@@ -1027,21 +1009,28 @@ const PreviewManager = (() => {
                 let category = normalizePreviewSkillCategory((typeof skill === 'object' && skill.category) ? skill.category : 'Technical Skills');
 
                 const displayCat = category.replace(/_/g, ' ');
+                const catSlug = category.toLowerCase().replace(/[^a-z0-9]/g, '');
 
-                // Find or create category container
-                let catEl = null;
-                const catHeaders = skillsGrid.querySelectorAll('.skill-category-title');
-                catHeaders.forEach(h => {
-                    const text = h.textContent.replace(/[:]+$/, '').replace(/\s+/g, ' ').trim().toLowerCase();
-                    const targetText = displayCat.replace(/\s+/g, ' ').trim().toLowerCase();
-                    if (text === targetText || text === category.toLowerCase() || text.includes(targetText)) {
-                        catEl = h.closest('.skill-category');
+                // Find existing category container by slug or normalized text
+                let catEl = skillsGrid.querySelector(`[data-category-slug="${catSlug}"]`);
+                if (!catEl) {
+                    const catHeaders = skillsGrid.querySelectorAll('.skill-category-title');
+                    for (const h of catHeaders) {
+                        const hSlug = h.textContent.toLowerCase().replace(/[^a-z0-9]/g, '');
+                        if (hSlug === catSlug || hSlug.includes(catSlug) || catSlug.includes(hSlug)) {
+                            catEl = h.closest('.skill-category');
+                            if (catEl) {
+                                catEl.setAttribute('data-category-slug', catSlug);
+                                break;
+                            }
+                        }
                     }
-                });
+                }
 
                 if (!catEl) {
                     catEl = doc.createElement('div');
                     catEl.className = 'skill-category';
+                    catEl.setAttribute('data-category-slug', catSlug);
                     catEl.innerHTML = `
                         <h4 class="skill-category-title">${formatSkillCategoryTitle(displayCat)}</h4>
                         <div class="skill-tags"></div>
