@@ -447,8 +447,23 @@ const PreviewManager = (() => {
         }
 
         function renderDocEducationEntry(edu) {
-            const degree = escapeDocHtml(edu.degree || '');
-            const field = edu.field_of_study ? ` in ${escapeDocHtml(edu.field_of_study)}` : '';
+            let d = (edu.degree || '').trim();
+            let f = (edu.field_of_study || '').trim();
+            if (d && (!f || !f.trim())) {
+                const mIn = d.match(/^(.*?)\s+in\s+(.+)$/i);
+                if (mIn) {
+                    d = mIn[1].trim().replace(/[,.;]+$/, '');
+                    f = mIn[2].trim().replace(/[,.;]+$/, '');
+                } else {
+                    const mDash = d.match(/^(.*?)\s+[-–—]\s+(.+)$/);
+                    if (mDash) {
+                        d = mDash[1].trim().replace(/[,.;]+$/, '');
+                        f = mDash[2].trim().replace(/[,.;]+$/, '');
+                    }
+                }
+            }
+            const degree = escapeDocHtml(d);
+            const field = f ? ` in ${escapeDocHtml(f)}` : '';
             const inst = escapeDocHtml(edu.institution || '');
             const loc = edu.location ? ` · ${escapeDocHtml(edu.location)}` : '';
             const dateRange = `${edu.start_date || ''}${edu.start_date ? ' – ' : ''}${edu.is_current ? 'Present' : (edu.end_date || '')}`;
@@ -500,12 +515,30 @@ const PreviewManager = (() => {
             }, true);
         }
 
+        function normalizePreviewSkillCategory(cat) {
+            if (!cat) return 'Technical Skills';
+            const c = String(cat).trim().replace(/[:]+$/, '').toLowerCase();
+            if (['technical', 'technical skills', 'skills', 'tech', 'programming', 'languages', 'programming languages', 'coding', 'core competencies', 'technical proficiencies'].includes(c)) {
+                return 'Technical Skills';
+            }
+            if (['framework', 'frameworks', 'libraries', 'frameworks & libraries', 'frameworks and libraries', 'frameworks & tools', 'framework & library'].includes(c)) {
+                return 'Frameworks & Libraries';
+            }
+            if (['tool', 'tools', 'tools & platforms', 'tools and platforms', 'platforms', 'developer tools', 'technologies', 'devops', 'software', 'environment'].includes(c)) {
+                return 'Tools & Platforms';
+            }
+            if (['soft', 'soft skills', 'interpersonal', 'interpersonal skills', 'professional skills', 'management'].includes(c)) {
+                return 'Soft Skills';
+            }
+            return String(cat).trim().replace(/[:]+$/, '');
+        }
+
         function formatSkillCategoryTitle(cat) {
             const raw = escapeDocHtml(cat).replace(/[:]+$/, '');
             if (raw.toLowerCase() === 'frameworks &amp; libraries' || raw.toLowerCase() === 'frameworks & libraries') {
                 return 'Frameworks &amp;<br>Libraries:';
             }
-            if (raw.toLowerCase() === 'tools &amp; platforms' || raw.toLowerCase() === 'tools & platforms') {
+            if (raw.toLowerCase() === 'tools &amp; platforms' || raw.toLowerCase() === 'tools & platforms' || raw.toLowerCase() === 'tools') {
                 return 'Tools &amp;<br>Platforms:';
             }
             return `${raw}:`;
@@ -514,17 +547,20 @@ const PreviewManager = (() => {
         function renderDocSkillsHtml(skills) {
             if (!Array.isArray(skills) || skills.length === 0) return '';
             const categories = {};
+            const seenSkills = new Set();
             skills.forEach(s => {
                 const name = typeof s === 'string' ? s : (s.name || '');
-                if (!name) return;
-                let cat = (typeof s === 'object' && s.category) ? s.category : 'Technical Skills';
-                cat = String(cat).trim().replace(/[:]+$/, '');
-                if (cat.toLowerCase() === 'technical') cat = 'Technical Skills';
-                if (cat.toLowerCase() === 'framework' || cat.toLowerCase() === 'frameworks') cat = 'Frameworks & Libraries';
-                if (cat.toLowerCase() === 'tool') cat = 'Tools';
-                if (cat.toLowerCase() === 'soft') cat = 'Soft Skills';
+                if (!name || !name.trim()) return;
+                const trimmedName = name.trim();
+                const lowerName = trimmedName.toLowerCase();
+                if (seenSkills.has(lowerName)) return;
+                seenSkills.add(lowerName);
+
+                const rawCat = (typeof s === 'object' && s.category) ? s.category : 'Technical Skills';
+                const cat = normalizePreviewSkillCategory(rawCat);
+
                 if (!categories[cat]) categories[cat] = [];
-                categories[cat].push(name);
+                categories[cat].push(trimmedName);
             });
             
             return `
@@ -931,12 +967,7 @@ const PreviewManager = (() => {
                 const sName = typeof skill === 'string' ? skill : (skill.name || '');
                 if (!sName || !sName.trim()) return;
 
-                let category = (typeof skill === 'object' && skill.category) ? skill.category : 'Technical Skills';
-                category = String(category).trim().replace(/[:]+$/, '');
-                if (category.toLowerCase() === 'technical') category = 'Technical Skills';
-                if (category.toLowerCase() === 'framework' || category.toLowerCase() === 'frameworks') category = 'Frameworks & Libraries';
-                if (category.toLowerCase() === 'tool') category = 'Tools';
-                if (category.toLowerCase() === 'soft') category = 'Soft Skills';
+                let category = normalizePreviewSkillCategory((typeof skill === 'object' && skill.category) ? skill.category : 'Technical Skills');
 
                 const displayCat = category.replace(/_/g, ' ');
 

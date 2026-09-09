@@ -160,13 +160,15 @@
                 {% if cat not in categories %}
                     {% set _ = categories.update({cat: []}) %}
                 {% endif %}
-                {% set _ = categories[cat].append(skill.name) %}
+                {% if skill.name not in categories[cat] %}
+                    {% set _ = categories[cat].append(skill.name) %}
+                {% endif %}
             {% endfor %}
             
             {% for category, skill_names in categories.items() %}
             <li style="margin-bottom: 2px; line-height: 1.5;">
                 {% set display_cat = category | replace('_', ' ') %}
-                <strong>{{ display_cat }}:</strong> {{ skill_names | join(', ') }}
+                <strong>{% if 'Framework' in display_cat %}Frameworks &amp; Libraries:{% elif 'Tool' in display_cat %}Tools &amp; Platforms:{% else %}{{ display_cat }}:{% endif %}</strong> {{ skill_names | join(', ') }}
             </li>
             {% endfor %}
         </ul>

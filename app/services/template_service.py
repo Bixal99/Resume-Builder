@@ -10,6 +10,7 @@ Responsibilities:
 - Provide template metadata for the gallery UI
 """
 
+import copy
 from pathlib import Path
 import re
 from typing import Optional
@@ -18,6 +19,7 @@ from jinja2 import Environment, FileSystemLoader, select_autoescape
 
 from app.core.config import settings
 from app.schemas.resume import ResumeData, TemplateInfo
+from app.services.parser import normalize_skill_category, split_degree_and_field
 
 
 # --- Template Registry ---
@@ -214,6 +216,35 @@ class TemplateService:
             template_css = css_path.read_text(encoding="utf-8")
 
         hidden = getattr(data, "hidden_sections", None) or []
+
+        # Ensure skills are normalized and deduplicated across preview and PDF rendering
+        if hasattr(data, "skills") and data.skills:
+            normalized_skills = []
+            seen_skill_names = set()
+            for skill in data.skills:
+                s_name = (getattr(skill, "name", None) or "").strip()
+                if not s_name:
+                    continue
+                s_lower = s_name.lower()
+                if s_lower in seen_skill_names:
+                    continue
+                seen_skill_names.add(s_lower)
+                raw_cat = getattr(skill, "category", None)
+                cat = normalize_skill_category(raw_cat)
+                skill_copy = skill.model_copy() if hasattr(skill, "model_copy") else copy.deepcopy(skill)
+                skill_copy.name = s_name
+                skill_copy.category = cat
+                normalized_skills.append(skill_copy)
+            data.skills = normalized_skills
+
+        # Ensure education degree and field of study are cleanly separated
+        if hasattr(data, "education") and data.education:
+            for edu in data.education:
+                d = getattr(edu, "degree", "") or ""
+                f = getattr(edu, "field_of_study", "") or ""
+                new_d, new_f = split_degree_and_field(d, f)
+                edu.degree = new_d
+                edu.field_of_study = new_f
 
         # Render with full resume data context
         html = template.render(

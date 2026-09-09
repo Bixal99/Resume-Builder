@@ -47,6 +47,41 @@ const ResumeStore = (() => {
         'languages', 'certifications', 'awards', 'volunteer', 'references'
     ];
 
+    function normalizeSkillCategory(cat) {
+        if (!cat) return 'Technical Skills';
+        const c = String(cat).trim().replace(/[:]+$/, '').toLowerCase();
+        if (['technical', 'technical skills', 'skills', 'tech', 'programming', 'languages', 'programming languages', 'coding', 'core competencies', 'technical proficiencies'].includes(c)) {
+            return 'Technical Skills';
+        }
+        if (['framework', 'frameworks', 'libraries', 'frameworks & libraries', 'frameworks and libraries', 'frameworks & tools', 'framework & library'].includes(c)) {
+            return 'Frameworks & Libraries';
+        }
+        if (['tool', 'tools', 'tools & platforms', 'tools and platforms', 'platforms', 'developer tools', 'technologies', 'devops', 'software', 'environment'].includes(c)) {
+            return 'Tools & Platforms';
+        }
+        if (['soft', 'soft skills', 'interpersonal', 'interpersonal skills', 'professional skills', 'management'].includes(c)) {
+            return 'Soft Skills';
+        }
+        return String(cat).trim().replace(/[:]+$/, '');
+    }
+
+    function splitDegreeAndField(degree, fieldOfStudy) {
+        let d = (degree || '').trim();
+        let f = (fieldOfStudy || '').trim();
+        if (!d) return { degree: d, field_of_study: f };
+        if (f) {
+            d = d.replace(new RegExp('\\s+(?:in|–|-|—)\\s+' + f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[.\\s]*$', 'i'), '').trim();
+            return { degree: d, field_of_study: f };
+        }
+        const mIn = d.match(/^(.*?)\s+in\s+(.+)$/i);
+        if (mIn) return { degree: mIn[1].trim().replace(/[,.;]+$/, ''), field_of_study: mIn[2].trim().replace(/[,.;]+$/, '') };
+        const mDash = d.match(/^(.*?)\s+[-–—]\s+(.+)$/);
+        if (mDash) return { degree: mDash[1].trim().replace(/[,.;]+$/, ''), field_of_study: mDash[2].trim().replace(/[,.;]+$/, '') };
+        const mParen = d.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+        if (mParen) return { degree: mParen[1].trim(), field_of_study: mParen[2].trim() };
+        return { degree: d, field_of_study: f };
+    }
+
     function ensureItemIds(targetState) {
         if (!targetState || typeof targetState !== 'object') return;
         ARRAY_SECTIONS.forEach(section => {
@@ -58,6 +93,38 @@ const ResumeStore = (() => {
                 });
             }
         });
+
+        // Clean & separate education degree and field_of_study
+        if (Array.isArray(targetState.education)) {
+            targetState.education.forEach(item => {
+                if (item && typeof item === 'object' && item.degree && (!item.field_of_study || !item.field_of_study.trim())) {
+                    const split = splitDegreeAndField(item.degree, item.field_of_study);
+                    if (split.field_of_study) {
+                        item.degree = split.degree;
+                        item.field_of_study = split.field_of_study;
+                    }
+                }
+            });
+        }
+
+        // Clean & deduplicate skills and normalize categories
+        if (Array.isArray(targetState.skills)) {
+            const seen = new Set();
+            const deduplicated = [];
+            targetState.skills.forEach(skill => {
+                if (skill && typeof skill === 'object' && skill.name) {
+                    const sName = String(skill.name).trim();
+                    const sLower = sName.toLowerCase();
+                    if (sName && !seen.has(sLower)) {
+                        seen.add(sLower);
+                        skill.name = sName;
+                        skill.category = normalizeSkillCategory(skill.category);
+                        deduplicated.push(skill);
+                    }
+                }
+            });
+            targetState.skills = deduplicated;
+        }
     }
 
     function initProfiles() {

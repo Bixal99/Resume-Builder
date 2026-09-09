@@ -60,12 +60,14 @@
                 {% if cat not in categories %}
                     {% set _ = categories.update({cat: []}) %}
                 {% endif %}
-                {% set _ = categories[cat].append(skill.name) %}
+                {% if skill.name not in categories[cat] %}
+                    {% set _ = categories[cat].append(skill.name) %}
+                {% endif %}
             {% endfor %}
             {% for category, skill_names in categories.items() %}
             <div class="skill-category">
                 {% set display_cat = category | replace('_', ' ') %}
-                <span class="skill-category-title">{{ display_cat }}:</span>
+                <span class="skill-category-title">{% if 'Framework' in display_cat %}Frameworks &amp; Libraries:{% elif 'Tool' in display_cat %}Tools &amp; Platforms:{% else %}{{ display_cat }}:{% endif %}</span>
                 <span class="skill-category-list">{{ skill_names | join(', ') }}</span>
             </div>
             {% endfor %}

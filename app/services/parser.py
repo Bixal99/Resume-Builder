@@ -74,15 +74,31 @@ CRITICAL PARSING RULES:
 4. EMPTY SECTIONS: If a section doesn't exist, leave its array empty []. NEVER output "None", "N/A", or dummy data.
 5. SKILLS & CATEGORIES (CRITICAL):
    Do NOT merge all skills into one category!
-   Examine the resume text for explicit skills categories, headers, or lines (e.g., "Technical Skills:", "Frameworks & Libraries:", "Tools:", "Languages:", "Databases:", "Cloud & DevOps:", etc.).
+   Assign each skill to one of these standard categories:
+   - "Technical Skills" (Programming languages, databases, computer vision, algorithms, etc.)
+   - "Frameworks & Libraries" (React, Next.js, Django, FastAPI, PyTorch, NumPy, Pandas, etc.)
+   - "Tools" (Git, GitHub, Docker, VS Code, Linux, Postman, Figma, Cloud platforms, etc.)
+   - "Soft Skills" (Communication, Leadership, Problem Solving, Teamwork, etc.)
+   Or use the explicit category header from the resume text.
    For EVERY skill:
-   - 'name': specific skill name (e.g., "Python", "React.js", "Docker", "Git", "PostgreSQL").
-   - 'category': its EXACT category header from the resume (e.g. "Technical Skills", "Frameworks & Libraries", "Tools"). If listed under "Technical Skills:", category MUST be "Technical Skills". If listed under "Frameworks & Libraries:", category MUST be "Frameworks & Libraries". If listed under "Tools:", category MUST be "Tools".
-6. LINKS & URLS:
+   - 'name': specific skill name (e.g. "Python", "Next.js", "Docker", "Git").
+   - 'category': its category ("Technical Skills", "Frameworks & Libraries", "Tools", or "Soft Skills").
+6. EDUCATION DEGREE & FIELD OF STUDY (CRITICAL):
+   Strictly separate the degree qualification/level from the academic field of study!
+   - 'degree': ONLY the degree qualification/title (e.g. "Bachelor of Science", "Bachelor of Arts", "Bachelor of Engineering", "Bachelor of Technology", "Master of Science", "Master of Business Administration", "Doctor of Philosophy", "Associate of Science", "High School Diploma").
+   - 'field_of_study': ONLY the major, discipline, or field of study (e.g. "Computer Science", "Software Engineering", "Mechanical Engineering", "Electrical Engineering", "Data Science", "Economics", "Business Administration").
+   NEVER put the field of study inside 'degree'!
+   Example: If the resume says "Bachelor of Science in Computer Science", you MUST output:
+   "degree": "Bachelor of Science", "field_of_study": "Computer Science".
+   Example: If the resume says "BS Computer Science" or "B.S. in CS", you MUST output:
+   "degree": "Bachelor of Science", "field_of_study": "Computer Science".
+   Example: If the resume says "Master of Science in Data Science", you MUST output:
+   "degree": "Master of Science", "field_of_study": "Data Science".
+7. LINKS & URLS:
    Preserve all links (LinkedIn, GitHub, Portfolio, Website, project repositories and demos). If a URL is written without http/https (e.g. "github.com/username", "LinkedIn.com/in/..."), preserve it accurately.
-7. EDUCATION GRADE:
+8. EDUCATION GRADE:
    Extract GPA, grades, or academic standing (e.g. "2.85/4.0", "3.8 GPA") into the 'grade' field of education.
-8. Output raw JSON only. Do not wrap in markdown or explanation.
+9. Output raw JSON only. Do not wrap in markdown or explanation.
 """
     user_prompt = f"Here is the resume text:\n\n{text}"
     return system_prompt, user_prompt
@@ -170,6 +186,96 @@ def build_skill_category_map(raw_text: str):
     return skill_to_cat, cat_headers
 
 
+def normalize_degree_name(d: str) -> str:
+    d_clean = (d or "").strip()
+    d_low = d_clean.lower()
+    if d_low in ("bs", "b.s.", "bsc", "b.sc.", "b.sc"):
+        return "Bachelor of Science"
+    if d_low in ("ba", "b.a."):
+        return "Bachelor of Arts"
+    if d_low in ("be", "b.e."):
+        return "Bachelor of Engineering"
+    if d_low in ("btech", "b.tech", "b.tech."):
+        return "Bachelor of Technology"
+    if d_low in ("ms", "m.s.", "msc", "m.sc.", "m.sc"):
+        return "Master of Science"
+    if d_low in ("ma", "m.a."):
+        return "Master of Arts"
+    if d_low in ("mba", "m.b.a."):
+        return "Master of Business Administration"
+    if d_low in ("phd", "ph.d.", "dphil"):
+        return "Doctor of Philosophy"
+    return d_clean
+
+
+def split_degree_and_field(degree: str, field_of_study: str):
+    degree = (degree or "").strip()
+    field = (field_of_study or "").strip()
+    if not degree:
+        return degree, field
+    
+    # If field is already provided, clean degree if it still contains "in <field>"
+    if field:
+        degree = re.sub(rf'\s+(?:in|–|-|—)\s+{re.escape(field)}[\.\s]*$', '', degree, flags=re.IGNORECASE).strip()
+        return normalize_degree_name(degree), field
+
+    # Field is empty; extract from degree string
+    # Pattern 1: "... in <field>" (e.g. "Bachelor of Science in Computer Science")
+    m_in = re.search(r'^(.*?)\s+in\s+(.+)$', degree, re.IGNORECASE)
+    if m_in:
+        d = m_in.group(1).strip().rstrip('.,;')
+        f = m_in.group(2).strip().rstrip('.,;')
+        if d and f:
+            return normalize_degree_name(d), f
+
+    # Pattern 2: "... - <field>" or "... – <field>" or "... — <field>"
+    m_dash = re.search(r'^(.*?)\s+[-–—]\s+(.+)$', degree)
+    if m_dash:
+        d = m_dash.group(1).strip().rstrip('.,;')
+        f = m_dash.group(2).strip().rstrip('.,;')
+        if d and f:
+            return normalize_degree_name(d), f
+
+    # Pattern 3: "... ( <field> )"
+    m_paren = re.search(r'^(.*?)\s*\(([^)]+)\)\s*$', degree)
+    if m_paren:
+        d = m_paren.group(1).strip()
+        f = m_paren.group(2).strip()
+        if d and f:
+            return normalize_degree_name(d), f
+
+    # Pattern 4: "BS Computer Science", "BSc Computer Science", etc.
+    m_abbrev = re.match(r'^(B\.?S\.?c?|M\.?S\.?c?|B\.?Tech|M\.?Tech|B\.?E\.?|M\.?E\.?|B\.?A\.?|M\.?A\.?|Ph\.?D\.?)\s+(.+)$', degree, re.IGNORECASE)
+    if m_abbrev:
+        d = m_abbrev.group(1).strip()
+        f = m_abbrev.group(2).strip()
+        return normalize_degree_name(d), f
+
+    # Pattern 5: "Bachelor of Science Computer Science" (without 'in')
+    m_full = re.match(r'^(Bachelor\s+of\s+\w+|Master\s+of\s+\w+|Associate\s+of\s+\w+)\s+(.+)$', degree, re.IGNORECASE)
+    if m_full:
+        d = m_full.group(1).strip()
+        f = m_full.group(2).strip()
+        return normalize_degree_name(d), f
+
+    return normalize_degree_name(degree), field
+
+
+def normalize_skill_category(cat: str) -> str:
+    if not cat:
+        return "Technical Skills"
+    c = str(cat).strip().rstrip(":").lower()
+    if c in ("technical", "technical skills", "skills", "tech", "programming", "languages", "programming languages", "coding", "core competencies", "technical proficiencies"):
+        return "Technical Skills"
+    if c in ("framework", "frameworks", "libraries", "frameworks & libraries", "frameworks and libraries", "frameworks & tools", "framework & library"):
+        return "Frameworks & Libraries"
+    if c in ("tool", "tools", "tools & platforms", "tools and platforms", "platforms", "developer tools", "technologies", "devops", "software", "environment"):
+        return "Tools & Platforms"
+    if c in ("soft", "soft skills", "interpersonal", "interpersonal skills", "professional skills", "management"):
+        return "Soft Skills"
+    return str(cat).strip().rstrip(":")
+
+
 def post_process_json(parsed_json, raw_text: str = None):
     if not isinstance(parsed_json, dict):
         return parsed_json
@@ -178,11 +284,20 @@ def post_process_json(parsed_json, raw_text: str = None):
     if raw_text:
         skill_to_cat, _ = build_skill_category_map(raw_text)
 
-    # 1. Properly categorize all skills, preserving exact CV headers, and assign unique IDs
+    # 1. Properly categorize all skills, normalize categories, assign unique IDs, and deduplicate
     if "skills" in parsed_json and isinstance(parsed_json["skills"], list):
+        seen_skills = set()
+        clean_skills = []
         for skill in parsed_json["skills"]:
             if isinstance(skill, dict):
                 s_name = str(skill.get("name", "")).strip()
+                if not s_name:
+                    continue
+                s_key = s_name.lower()
+                if s_key in seen_skills:
+                    continue
+                seen_skills.add(s_key)
+
                 cat = skill.get("category")
                 if cat:
                     cat = str(cat).strip().rstrip(":")
@@ -193,9 +308,13 @@ def post_process_json(parsed_json, raw_text: str = None):
                 elif not cat or cat.lower() in ("technical", "skills", "general"):
                     cat = skill_to_cat.get(s_name.lower()) or cat or "Technical Skills"
                 
+                cat = normalize_skill_category(cat)
+                skill["name"] = s_name
                 skill["category"] = cat
                 if not skill.get("id"):
                     skill["id"] = f"skill_{uuid.uuid4().hex[:8]}"
+                clean_skills.append(skill)
+        parsed_json["skills"] = clean_skills
 
     # 2. Assign unique IDs to projects
     if "projects" in parsed_json and isinstance(parsed_json["projects"], list):
@@ -203,11 +322,17 @@ def post_process_json(parsed_json, raw_text: str = None):
             if isinstance(proj, dict) and not proj.get("id"):
                 proj["id"] = f"proj_{uuid.uuid4().hex[:8]}"
 
-    # 3. Assign unique IDs to education
+    # 3. Clean education entries, separate degree and field of study, and assign unique IDs
     if "education" in parsed_json and isinstance(parsed_json["education"], list):
         for edu in parsed_json["education"]:
-            if isinstance(edu, dict) and not edu.get("id"):
-                edu["id"] = f"edu_{uuid.uuid4().hex[:8]}"
+            if isinstance(edu, dict):
+                if not edu.get("id"):
+                    edu["id"] = f"edu_{uuid.uuid4().hex[:8]}"
+                d = edu.get("degree", "")
+                f = edu.get("field_of_study", "")
+                new_d, new_f = split_degree_and_field(d, f)
+                edu["degree"] = new_d
+                edu["field_of_study"] = new_f
 
     # 4. Purge "None" from experience, assign IDs, and move President/Club roles to volunteer
     if "experience" in parsed_json and isinstance(parsed_json["experience"], list):
@@ -469,6 +594,7 @@ def stream_parse_resume_with_llm(text: str):
                                     s_cat = skill_to_cat[s_name.lower()]
                                 elif not s_cat or s_cat.lower() in ("technical", "skills", "general"):
                                     s_cat = skill_to_cat.get(s_name.lower()) or s_cat or "Technical Skills"
+                                s_cat = normalize_skill_category(s_cat)
 
                                 skill_payload = {
                                     "id": new_skill.get("id") or f"skill_{uuid.uuid4().hex[:8]}",

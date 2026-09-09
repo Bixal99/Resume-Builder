@@ -4,11 +4,39 @@
 
 const SkillsComponent = (() => {
     const CATEGORIES = [
-        { id: 'technical', label: 'Technical Skills' },
-        { id: 'framework', label: 'Frameworks & Libraries' },
-        { id: 'tool', label: 'Tools & Platforms' },
-        { id: 'soft', label: 'Soft Skills' },
+        { id: 'technical', label: 'Technical Skills', canonical: 'Technical Skills' },
+        { id: 'framework', label: 'Frameworks & Libraries', canonical: 'Frameworks & Libraries' },
+        { id: 'tool', label: 'Tools & Platforms', canonical: 'Tools & Platforms' },
+        { id: 'soft', label: 'Soft Skills', canonical: 'Soft Skills' },
     ];
+
+    function matchCategory(skillCat, catId) {
+        if (!skillCat) return catId === 'technical';
+        const c = String(skillCat).trim().replace(/[:]+$/, '').toLowerCase();
+        if (catId === 'technical') {
+            return ['technical', 'technical skills', 'skills', 'tech', 'programming', 'languages', 'programming languages', 'coding', 'core competencies', 'technical proficiencies'].includes(c);
+        }
+        if (catId === 'framework') {
+            return ['framework', 'frameworks', 'libraries', 'frameworks & libraries', 'frameworks and libraries', 'frameworks & tools', 'framework & library'].includes(c);
+        }
+        if (catId === 'tool') {
+            return ['tool', 'tools', 'tools & platforms', 'tools and platforms', 'platforms', 'developer tools', 'technologies', 'devops', 'software', 'environment'].includes(c);
+        }
+        if (catId === 'soft') {
+            return ['soft', 'soft skills', 'interpersonal', 'interpersonal skills', 'professional skills', 'management'].includes(c);
+        }
+        return c === String(catId).trim().toLowerCase();
+    }
+
+    function getCanonicalCategory(catIdOrName) {
+        if (!catIdOrName) return 'Technical Skills';
+        for (const cat of CATEGORIES) {
+            if (cat.id === catIdOrName || matchCategory(catIdOrName, cat.id)) {
+                return cat.canonical;
+            }
+        }
+        return String(catIdOrName).trim().replace(/[:]+$/, '');
+    }
 
     const PRELOADED_SKILLS = {
         technical: [
@@ -674,9 +702,11 @@ const SkillsComponent = (() => {
 
         let skills = ResumeStore.get('skills') || [];
         const existingInCat = new Set(
-            skills.filter(s => (s.category || 'technical') === cat)
+            skills.filter(s => matchCategory(s.category, cat))
                   .map(s => s.name.trim().toLowerCase())
         );
+
+        const canonicalCat = getCanonicalCategory(cat);
 
         let addedCount = 0;
         tokens.forEach(token => {
@@ -686,7 +716,7 @@ const SkillsComponent = (() => {
                 skills.push({
                     id: ResumeStore.generateId('skill'),
                     name: token,
-                    category: cat,
+                    category: canonicalCat,
                     proficiency: 5,
                     sort_order: skills.length
                 });
@@ -709,7 +739,7 @@ const SkillsComponent = (() => {
 
     function removeLastSkillInCategory(container, cat) {
         let skills = ResumeStore.get('skills') || [];
-        const catSkills = skills.filter(s => (s.category || 'technical') === cat);
+        const catSkills = skills.filter(s => matchCategory(s.category, cat));
         if (catSkills.length === 0) return;
         const lastSkill = catSkills[catSkills.length - 1];
         removeSkillById(container, lastSkill.id, cat);
@@ -734,28 +764,48 @@ const SkillsComponent = (() => {
 
         const sortedSkills = [...skills].sort((a, b) => (a.sort_order || 0) - (b.sort_order || 0));
 
+        // Detect any custom non-standard categories in skills
+        const extraCats = [];
+        sortedSkills.forEach(s => {
+            if (s.category) {
+                const isStd = CATEGORIES.some(cat => matchCategory(s.category, cat.id));
+                if (!isStd) {
+                    const cleanCat = String(s.category).trim().replace(/[:]+$/, '');
+                    if (cleanCat && !extraCats.some(ec => ec.id.toLowerCase() === cleanCat.toLowerCase())) {
+                        extraCats.push({
+                            id: cleanCat,
+                            label: cleanCat,
+                            canonical: cleanCat
+                        });
+                    }
+                }
+            }
+        });
+
+        const allCategories = [...CATEGORIES, ...extraCats];
+
         container.innerHTML = `
             <h2 class="form-section-title">Skills</h2>
             <p class="form-section-subtitle">Add skills grouped by category. Type or paste multiple skills (comma, semicolon, or newline separated). Press Backspace to remove last skill. Click ✕ to remove any skill immediately.</p>
-            ${CATEGORIES.map(cat => {
-                const catSkills = sortedSkills.filter(s => (s.category || 'technical') === cat.id);
+            ${allCategories.map(cat => {
+                const catSkills = sortedSkills.filter(s => matchCategory(s.category, cat.id));
                 const preloaded = PRELOADED_SKILLS[cat.id] || [];
                 const existingNames = new Set(catSkills.map(s => s.name.trim().toLowerCase()));
                 const suggestions = preloaded.filter(name => !existingNames.has(name.toLowerCase())).slice(0, 10);
 
                 return `
                 <div class="form-group skill-category-group" style="margin-bottom: var(--space-5);">
-                    <label class="form-label" style="font-weight: 600;">${cat.label}</label>
-                    <div class="tags-input-container" id="skills-${cat.id}" data-category="${cat.id}">
+                    <label class="form-label" style="font-weight: 600;">${sanitizeHTML(cat.label)}</label>
+                    <div class="tags-input-container" id="skills-${escapeAttr(cat.id)}" data-category="${escapeAttr(cat.id)}">
                         ${catSkills.map(s => `
-                            <span class="tag tag-primary tag-removable" data-id="${escapeAttr(s.id)}" data-name="${escapeAttr(s.name)}" data-cat="${cat.id}">
+                            <span class="tag tag-primary tag-removable" data-id="${escapeAttr(s.id)}" data-name="${escapeAttr(s.name)}" data-cat="${escapeAttr(cat.id)}">
                                 ${sanitizeHTML(s.name)}
-                                <span class="tag-remove" data-id="${escapeAttr(s.id)}" data-cat="${cat.id}" role="button" aria-label="Remove ${escapeAttr(s.name)}" title="Remove skill">✕</span>
+                                <span class="tag-remove" data-id="${escapeAttr(s.id)}" data-cat="${escapeAttr(cat.id)}" role="button" aria-label="Remove ${escapeAttr(s.name)}" title="Remove skill">✕</span>
                             </span>
                         `).join('')}
-                        <input type="text" class="skill-input" data-category="${cat.id}" placeholder="Type or paste skills...">
+                        <input type="text" class="skill-input" data-category="${escapeAttr(cat.id)}" placeholder="Type or paste skills...">
                     </div>
-                    <div class="skill-suggestions-wrapper" id="suggestions-wrapper-${cat.id}">
+                    <div class="skill-suggestions-wrapper" id="suggestions-wrapper-${escapeAttr(cat.id)}">
                         ${renderSuggestionsHtml(cat.id, suggestions)}
                     </div>
                 </div>`;
@@ -796,7 +846,7 @@ const SkillsComponent = (() => {
 
         const skills = ResumeStore.get('skills') || [];
         const existingNames = new Set(
-            skills.filter(s => (s.category || 'technical') === cat)
+            skills.filter(s => matchCategory(s.category, cat))
                   .map(s => s.name.trim().toLowerCase())
         );
 
@@ -950,20 +1000,21 @@ const SkillsComponent = (() => {
 
             cont.querySelectorAll('.tags-input-container').forEach(tagCont => {
                 const catId = tagCont.dataset.category;
+                const canonicalCat = getCanonicalCategory(catId);
                 tagCont.querySelectorAll('.tag-removable').forEach((tag, idx) => {
                     const id = tag.dataset.id;
                     const existing = skillMap.get(id);
                     if (existing) {
                         newSkills.push({
                             ...existing,
-                            category: catId,
+                            category: canonicalCat,
                             sort_order: idx
                         });
                     } else {
                         newSkills.push({
                             id: id || ResumeStore.generateId('skill'),
                             name: tag.dataset.name,
-                            category: catId,
+                            category: canonicalCat,
                             sort_order: idx
                         });
                     }

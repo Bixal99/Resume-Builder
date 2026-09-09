@@ -86,12 +86,14 @@
                 {% if cat not in categories %}
                     {% set _ = categories.update({cat: []}) %}
                 {% endif %}
-                {% set _ = categories[cat].append(skill.name) %}
+                {% if skill.name not in categories[cat] %}
+                    {% set _ = categories[cat].append(skill.name) %}
+                {% endif %}
             {% endfor %}
             {% for category, skill_names in categories.items() %}
             <div class="skill-category">
                 {% set display_cat = category | replace('_', ' ') %}
-                <h4 class="skill-category-title">{% if 'Frameworks & Libraries' in display_cat or 'Frameworks &amp; Libraries' in display_cat %}Frameworks &amp;<br>Libraries:{% elif 'Tools & Platforms' in display_cat or 'Tools &amp; Platforms' in display_cat %}Tools &amp;<br>Platforms:{% else %}{{ display_cat }}:{% endif %}</h4>
+                <h4 class="skill-category-title">{% if 'Framework' in display_cat %}Frameworks &amp;<br>Libraries:{% elif 'Tool' in display_cat %}Tools &amp;<br>Platforms:{% else %}{{ display_cat }}:{% endif %}</h4>
                 <div class="skill-tags">
                     {% for name in skill_names %}
                     <span class="tag">{{ name }}</span>

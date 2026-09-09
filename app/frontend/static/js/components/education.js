@@ -5,12 +5,70 @@
 const EducationComponent = (() => {
     let _container = null;
 
+    function splitDegreeAndField(degree, fieldOfStudy) {
+        let d = (degree || '').trim();
+        let f = (fieldOfStudy || '').trim();
+        if (!d) return { degree: d, field_of_study: f };
+
+        if (f) {
+            d = d.replace(new RegExp('\\s+(?:in|–|-|—)\\s+' + f.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '[.\\s]*$', 'i'), '').trim();
+            return { degree: d, field_of_study: f };
+        }
+
+        // Pattern 1: "... in <field>" (e.g. "Bachelor of Science in Computer Science")
+        const mIn = d.match(/^(.*?)\s+in\s+(.+)$/i);
+        if (mIn) {
+            return { degree: mIn[1].trim().replace(/[,.;]+$/, ''), field_of_study: mIn[2].trim().replace(/[,.;]+$/, '') };
+        }
+
+        // Pattern 2: "... - <field>" or "... – <field>"
+        const mDash = d.match(/^(.*?)\s+[-–—]\s+(.+)$/);
+        if (mDash) {
+            return { degree: mDash[1].trim().replace(/[,.;]+$/, ''), field_of_study: mDash[2].trim().replace(/[,.;]+$/, '') };
+        }
+
+        // Pattern 3: "... ( <field> )"
+        const mParen = d.match(/^(.*?)\s*\(([^)]+)\)\s*$/);
+        if (mParen) {
+            return { degree: mParen[1].trim(), field_of_study: mParen[2].trim() };
+        }
+
+        // Pattern 4: "BS Computer Science", "BSc Computer Science", etc.
+        const mAbbrev = d.match(/^(B\.?S\.?c?|M\.?S\.?c?|B\.?Tech|M\.?Tech|B\.?E\.?|M\.?E\.?|B\.?A\.?|M\.?A\.?|Ph\.?D\.?)\s+(.+)$/i);
+        if (mAbbrev) {
+            return { degree: mAbbrev[1].trim(), field_of_study: mAbbrev[2].trim() };
+        }
+
+        // Pattern 5: "Bachelor of Science Computer Science"
+        const mFull = d.match(/^(Bachelor\s+of\s+\w+|Master\s+of\s+\w+|Associate\s+of\s+\w+)\s+(.+)$/i);
+        if (mFull) {
+            return { degree: mFull[1].trim(), field_of_study: mFull[2].trim() };
+        }
+
+        return { degree: d, field_of_study: f };
+    }
+
     function render(container) {
         _container = container;
         const items = ResumeStore.get('education') || [];
+        let modified = false;
         items.forEach(item => {
-            if (!item.id) item.id = ResumeStore.generateId('edu');
+            if (!item.id) {
+                item.id = ResumeStore.generateId('edu');
+                modified = true;
+            }
+            if (item.degree && (!item.field_of_study || !item.field_of_study.trim())) {
+                const split = splitDegreeAndField(item.degree, item.field_of_study);
+                if (split.field_of_study) {
+                    item.degree = split.degree;
+                    item.field_of_study = split.field_of_study;
+                    modified = true;
+                }
+            }
         });
+        if (modified) {
+            ResumeStore.set('education', items);
+        }
 
         container.innerHTML = `
             <h2 class="form-section-title">Education</h2>
@@ -113,6 +171,16 @@ const EducationComponent = (() => {
                 const item = items.find(e => e.id === id);
                 if (item) {
                     item[field] = e.target.value;
+                    if (field === 'degree' && (!item.field_of_study || !item.field_of_study.trim())) {
+                        const split = splitDegreeAndField(item.degree, item.field_of_study);
+                        if (split.field_of_study) {
+                            item.degree = split.degree;
+                            item.field_of_study = split.field_of_study;
+                            e.target.value = split.degree;
+                            const fInput = container.querySelector(`.edu-field[data-id="${id}"][data-field="field_of_study"]`);
+                            if (fInput) fInput.value = split.field_of_study;
+                        }
+                    }
                     ResumeStore.set('education', items);
                 }
             }
