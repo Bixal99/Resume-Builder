@@ -67,29 +67,46 @@
             flex-wrap: wrap !important;
         }
 
-        /* Profile Photo Placement: Top Right Side */
+        /* Profile Photo Placement: Top Right Side & Header Flow */
         .resume-header {
+            position: relative !important;
             display: flex !important;
             justify-content: space-between !important;
             align-items: flex-start !important;
-            position: relative !important;
         }
         .header-content {
-            flex: 1 !important;
+            width: 100% !important;
+            flex: 1 1 100% !important;
+        }
+        .resume-header:has(.header-photo) .resume-name,
+        .resume-header:has(.header-photo) .resume-title {
+            padding-right: 80px !important;
         }
         .header-photo {
-            order: 2 !important;
-            margin-left: auto !important;
+            position: absolute !important;
+            top: -6px !important;
+            right: 0 !important;
+            margin: 0 !important;
             flex-shrink: 0 !important;
             display: flex !important;
             justify-content: flex-end !important;
             align-items: flex-start !important;
+            z-index: 5 !important;
         }
         .profile-photo {
-            width: 76px !important;
-            height: 76px !important;
+            width: 68px !important;
+            height: 68px !important;
             border-radius: 50% !important;
             object-fit: cover !important;
+        }
+        .contact-info {
+            width: 100% !important;
+            display: flex !important;
+            flex-wrap: wrap !important;
+            gap: 4px 10px !important;
+        }
+        .contact-item {
+            white-space: nowrap !important;
         }
 
         /* PDF Export Fixes for headless Chromium */
