@@ -19,16 +19,33 @@ const PreviewManager = (() => {
         const btnTarget2 = document.getElementById('target-2-page');
 
         if (btnTarget1 && btnTarget2) {
+            targetPages = ResumeStore.get('target_pages') || (ResumeStore.get('theme_settings')?.target_pages) || 1;
+            if (targetPages === 2) {
+                btnTarget2.classList.add('active');
+                btnTarget1.classList.remove('active');
+            } else {
+                btnTarget1.classList.add('active');
+                btnTarget2.classList.remove('active');
+            }
+
             btnTarget1.addEventListener('click', () => {
                 targetPages = 1;
                 btnTarget1.classList.add('active');
                 btnTarget2.classList.remove('active');
+                ResumeStore.set('target_pages', 1);
+                const ts = { ...(ResumeStore.get('theme_settings') || {}), target_pages: 1 };
+                ResumeStore.set('theme_settings', ts);
+                ResumeStore.save();
                 checkPageFullness();
             });
             btnTarget2.addEventListener('click', () => {
                 targetPages = 2;
                 btnTarget2.classList.add('active');
                 btnTarget1.classList.remove('active');
+                ResumeStore.set('target_pages', 2);
+                const ts = { ...(ResumeStore.get('theme_settings') || {}), target_pages: 2 };
+                ResumeStore.set('theme_settings', ts);
+                ResumeStore.save();
                 checkPageFullness();
             });
         }
@@ -87,10 +104,16 @@ const PreviewManager = (() => {
                 // Determine how aggressively to compress
                 const overflowPct = (actualHeight - totalTargetHeight) / totalTargetHeight;
 
-                let newTheme = { ...currentTheme };
+                let newTheme = { ...currentTheme, target_pages: targetPages };
 
-                if (overflowPct > 0.15) {
-                    // Significant overflow: use compact margins, tight spacing, compact font scale
+                if (overflowPct > 0.25) {
+                    // Heavy overflow: use tiny font size and compact margins/spacing
+                    newTheme.section_spacing = 'compact';
+                    newTheme.line_spacing = 'tight';
+                    newTheme.font_size = 'tiny';
+                    newTheme.page_margin = 'compact';
+                } else if (overflowPct > 0.08) {
+                    // Moderate overflow: use compact margins, tight spacing, compact font scale
                     newTheme.section_spacing = 'compact';
                     newTheme.line_spacing = 'tight';
                     newTheme.font_size = 'compact';
@@ -102,6 +125,7 @@ const PreviewManager = (() => {
                     newTheme.font_size = 'normal';
                 }
 
+                ResumeStore.set('target_pages', targetPages);
                 ResumeStore.set('theme_settings', newTheme);
                 ResumeStore.save();
 

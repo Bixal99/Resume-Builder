@@ -297,6 +297,7 @@ class ResumeBase(BaseModel):
     section_order: Optional[list[str]] = Field(default_factory=list)
     hidden_sections: Optional[list[str]] = Field(default_factory=list)
     theme_settings: Optional[dict] = Field(default_factory=dict)
+    target_pages: Optional[int] = Field(1, description="Target page count for budgeting (1 or 2)")
 
     # Personal information
     photo: Optional[str] = None

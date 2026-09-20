@@ -197,7 +197,7 @@
             {% for category, skill_names in categories.items() %}
             <div class="skill-category">
                 {% set display_cat = category | replace('_', ' ') %}
-                <h4 class="skill-category-title">{% if 'Framework' in display_cat %}Frameworks &amp;<br>Libraries:{% elif 'Tool' in display_cat %}Tools &amp;<br>Platforms:{% else %}{{ display_cat }}:{% endif %}</h4>
+                <h4 class="skill-category-title">{% if 'Framework' in display_cat %}Frameworks &amp; Libraries:{% elif 'Tool' in display_cat %}Tools &amp; Platforms:{% else %}{{ display_cat }}:{% endif %}</h4>
                 <div class="skill-tags">
                     {% for name in skill_names %}
                     <span class="tag">{{ name }}</span>

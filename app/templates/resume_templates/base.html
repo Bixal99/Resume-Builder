@@ -17,10 +17,10 @@
         /* User Formatting Overrides */
         {% if resume.theme_settings %}
         :root {
-            --user-section-gap: {% if resume.theme_settings.section_spacing == 'compact' %}0.75rem{% elif resume.theme_settings.section_spacing == 'relaxed' %}1.5rem{% else %}1rem{% endif %};
-            --user-line-height: {% if resume.theme_settings.line_spacing == 'tight' %}1.25{% elif resume.theme_settings.line_spacing == 'loose' %}1.8{% else %}1.5{% endif %};
-            --user-font-scale: {% if resume.theme_settings.font_size == 'compact' %}0.92{% elif resume.theme_settings.font_size == 'tiny' %}0.86{% elif resume.theme_settings.font_size == 'large' %}1.08{% else %}1{% endif %};
-            --user-page-padding: {% if resume.theme_settings.page_margin == 'compact' %}14mm 16mm{% elif resume.theme_settings.page_margin == 'relaxed' %}24mm 24mm{% else %}20mm 20mm{% endif %};
+            --user-section-gap: {% if resume.theme_settings.section_spacing == 'compact' %}0.45rem{% elif resume.theme_settings.section_spacing == 'relaxed' %}1.1rem{% else %}0.65rem{% endif %};
+            --user-line-height: {% if resume.theme_settings.line_spacing == 'tight' %}1.22{% elif resume.theme_settings.line_spacing == 'loose' %}1.6{% else %}1.38{% endif %};
+            --user-font-scale: {% if resume.theme_settings.font_size == 'compact' %}0.88{% elif resume.theme_settings.font_size == 'tiny' %}0.82{% elif resume.theme_settings.font_size == 'large' %}1.05{% else %}0.96{% endif %};
+            --user-page-padding: {% if resume.theme_settings.page_margin == 'compact' %}8mm 12mm{% elif resume.theme_settings.page_margin == 'relaxed' %}16mm 18mm{% else %}10mm 14mm{% endif %};
             {% if resume.theme_settings.font_family and resume.theme_settings.font_family != 'default' %}
             --font-heading: {{ resume.theme_settings.font_family | safe }} !important;
             --font-body: {{ resume.theme_settings.font_family | safe }} !important;
@@ -30,7 +30,7 @@
             line-height: var(--user-line-height) !important;
             text-align: {{ resume.theme_settings.text_alignment or 'left' }} !important;
             padding: var(--user-page-padding) !important;
-            font-size: calc(1rem * var(--user-font-scale, 1)) !important;
+            font-size: calc(10pt * var(--user-font-scale, 1)) !important;
             {% if resume.theme_settings.font_family and resume.theme_settings.font_family != 'default' %}
             font-family: {{ resume.theme_settings.font_family | safe }} !important;
             {% endif %}
@@ -47,74 +47,123 @@
         .skill-category:has(.skill-tags) {
             display: flex !important;
             align-items: flex-start !important;
-            gap: 10px !important;
+            gap: 12px !important;
+            margin-bottom: 3px !important;
+            padding-bottom: 3px !important;
         }
         .skill-category:has(.skill-tags) .skill-category-title {
-            white-space: normal !important;
-            word-break: normal !important;
-            overflow-wrap: break-word !important;
-            line-height: 1.25 !important;
-            flex: 0 0 115px !important;
-            width: 115px !important;
-            min-width: 110px !important;
-            max-width: 125px !important;
-            padding-top: 1px !important;
+            white-space: nowrap !important;
+            line-height: 1.3 !important;
+            flex: 0 0 160px !important;
+            width: 160px !important;
+            min-width: 145px !important;
+            max-width: 175px !important;
+            font-weight: 700 !important;
+            font-size: 9pt !important;
+            padding-top: 2px !important;
         }
         .skill-category:has(.skill-tags) .skill-tags {
             flex: 1 !important;
             min-width: 0 !important;
             display: flex !important;
             flex-wrap: wrap !important;
+            gap: 3px 6px !important;
+        }
+        .skill-tags .tag,
+        .tech-tags .tag {
+            display: inline-block !important;
+            padding: 1.5px 7px !important;
+            font-size: 8pt !important;
+            border-radius: 4px !important;
+            line-height: 1.3 !important;
         }
 
-        /* Profile Photo Placement: Top Right Side & Header Flow */
+        /* Profile Photo Placement & Header Flow */
         .resume-header {
-            position: relative !important;
             display: flex !important;
             justify-content: space-between !important;
-            align-items: flex-start !important;
+            align-items: center !important;
+            gap: 16px !important;
+            position: static !important;
+            margin-bottom: 10px !important;
+            padding-bottom: 6px !important;
         }
         .header-content {
-            width: 100% !important;
-            flex: 1 1 100% !important;
+            flex: 1 1 auto !important;
+            min-width: 0 !important;
+            width: auto !important;
         }
         .resume-header:has(.header-photo) .resume-name,
         .resume-header:has(.header-photo) .resume-title {
-            padding-right: 80px !important;
+            padding-right: 0 !important;
         }
         .header-photo {
-            position: absolute !important;
-            top: -6px !important;
-            right: 0 !important;
+            position: static !important;
+            flex: 0 0 88px !important;
+            width: 88px !important;
+            height: 88px !important;
             margin: 0 !important;
-            flex-shrink: 0 !important;
             display: flex !important;
-            justify-content: flex-end !important;
-            align-items: flex-start !important;
-            z-index: 5 !important;
+            align-items: center !important;
+            justify-content: center !important;
+            z-index: 2 !important;
         }
         .profile-photo {
-            width: 68px !important;
-            height: 68px !important;
+            width: 88px !important;
+            height: 88px !important;
             border-radius: 50% !important;
             object-fit: cover !important;
+            border: 2.5px solid var(--color-accent, #3b82f6) !important;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
         }
         .contact-info {
             width: 100% !important;
             display: flex !important;
             flex-wrap: wrap !important;
-            gap: 4px 10px !important;
+            align-items: center !important;
+            gap: 3px 12px !important;
         }
         .contact-item {
+            display: inline-flex !important;
+            align-items: center !important;
             white-space: nowrap !important;
+            gap: 4px !important;
+            line-height: 1.3 !important;
+        }
+        .contact-item .icon,
+        .contact-item svg {
+            width: 12px !important;
+            height: 12px !important;
+            vertical-align: middle !important;
+            flex-shrink: 0 !important;
         }
 
-        /* PDF Export Fixes for headless Chromium */
+        /* PDF Export & Print Fixes */
+        @page {
+            size: {{ page_size or 'A4' }};
+            margin: 0;
+        }
         @media print {
-            .resume-page {
+            html, body {
                 margin: 0 !important;
+                padding: 0 !important;
+                background: #ffffff !important;
+                height: auto !important;
+                -webkit-print-color-adjust: exact !important;
+                print-color-adjust: exact !important;
+            }
+            .resume-page {
+                margin: 0 auto !important;
                 box-shadow: none !important;
                 border: none !important;
+                min-height: unset !important;
+                height: auto !important;
+                page-break-after: avoid !important;
+                break-after: avoid !important;
+            }
+            .resume-section {
+                page-break-inside: avoid;
+                break-inside: avoid;
             }
             .template-field-highlight {
                 animation: none !important;

@@ -59,6 +59,13 @@ class PDFService:
         # Render HTML from template
         html = template_service.render_resume(data, template_id)
 
+        # Determine target pages (defaults to 1 page budget)
+        target_pages = getattr(data, "target_pages", None)
+        if not target_pages and hasattr(data, "theme_settings") and data.theme_settings:
+            target_pages = data.theme_settings.get("target_pages")
+        if not target_pages:
+            target_pages = 1
+
         # Generate PDF using configured engine with reciprocal fallback
         engine = settings.pdf_engine.lower()
 
@@ -70,10 +77,10 @@ class PDFService:
                     f"WeasyPrint PDF generation failed: {e}. "
                     f"Falling back to Playwright."
                 )
-                return await self._generate_with_playwright(html, data.page_size)
+                return await self._generate_with_playwright(html, data.page_size, target_pages=target_pages)
         else:
             try:
-                return await self._generate_with_playwright(html, data.page_size)
+                return await self._generate_with_playwright(html, data.page_size, target_pages=target_pages)
             except Exception as e:
                 logger.warning(
                     f"Playwright PDF generation failed: {e}. "
@@ -89,7 +96,7 @@ class PDFService:
                     ) from e
 
     async def _generate_with_playwright(
-        self, html: str, page_size: str = "A4"
+        self, html: str, page_size: str = "A4", target_pages: int = 1
     ) -> bytes:
         """
         Generate PDF using Playwright with an automatic launch cascade:
@@ -197,12 +204,35 @@ class PDFService:
                     page.wait_for_timeout(500)
 
                     format_size = page_size if page_size in ("A4", "Letter") else "A4"
+                    page_height_px = 1122 if format_size == "A4" else 1056
+                    max_allowed_height = page_height_px * target_pages
+
+                    actual_height = page.evaluate("""() => {
+                        const el = document.querySelector('.resume-page') || document.body;
+                        return Math.max(el.scrollHeight, el.offsetHeight);
+                    }""")
+
+                    logger.info(
+                        f"PDF render height: {actual_height}px, "
+                        f"target: {target_pages} page(s) ({max_allowed_height}px)"
+                    )
+
+                    # Dynamically calculate scale so the resume strictly fits within the target page count
+                    if actual_height > max_allowed_height:
+                        # Safety margin of 18px to prevent single-pixel page breaks
+                        fitted_scale = (max_allowed_height - 18) / actual_height
+                        calc_scale = max(0.65, min(1.0, round(fitted_scale, 3)))
+                    else:
+                        calc_scale = 0.98
+
+                    logger.info(f"Using dynamic scale: {calc_scale}")
+
                     pdf_bytes = page.pdf(
                         format=format_size,
                         print_background=True,
                         prefer_css_page_size=False,
                         margin={"top": "0", "right": "0", "bottom": "0", "left": "0"},
-                        scale=0.92,
+                        scale=calc_scale,
                     )
                     return pdf_bytes
                 finally:

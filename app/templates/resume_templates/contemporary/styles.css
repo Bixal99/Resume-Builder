@@ -56,32 +56,40 @@ body {
 /* --- Header --- */
 .resume-header {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 16px;
-    margin-bottom: 12px;
+    gap: 18px;
+    margin-bottom: 10px;
     padding-bottom: 8px;
     border-bottom: 1px solid var(--color-border);
 }
 
 .header-photo {
     flex-shrink: 0;
+    width: 88px;
+    height: 88px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .profile-photo {
-    width: 80px;
-    height: 80px;
-    border-radius: 8px; /* Contemporary soft square */
+    width: 88px;
+    height: 88px;
+    border-radius: 50%;
     object-fit: cover;
-    border: 2px solid var(--color-border);
+    border: 2.5px solid var(--color-accent);
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
 }
 
 .header-content {
     flex: 1;
+    min-width: 0;
 }
 
 .resume-name {
     font-family: var(--font-heading);
-    font-size: 24pt;
+    font-size: 22pt;
     font-weight: 700;
     color: var(--color-primary);
     line-height: 1.1;
@@ -195,16 +203,21 @@ body {
 .entry-header {
     display: flex;
     justify-content: space-between;
-    align-items: flex-start;
+    align-items: baseline;
     gap: 12px;
 }
 
 .entry-left {
     flex: 1;
+    min-width: 0;
 }
 
 .entry-right {
     flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
     text-align: right;
 }
 
@@ -305,18 +318,16 @@ body {
 
 .skill-category-title {
     font-family: var(--font-heading);
-    font-size: 9.5pt;
-    font-weight: 600;
+    font-size: 9pt;
+    font-weight: 700;
     color: var(--color-primary);
-    white-space: normal;
-    word-break: normal;
-    overflow-wrap: break-word;
-    line-height: 1.25;
-    flex: 0 0 115px;
-    width: 115px;
-    min-width: 110px;
-    max-width: 125px;
-    padding-top: 1px;
+    white-space: nowrap;
+    line-height: 1.3;
+    flex: 0 0 160px;
+    width: 160px;
+    min-width: 145px;
+    max-width: 175px;
+    padding-top: 2px;
 }
 
 .skill-tags,
@@ -325,18 +336,19 @@ body {
     min-width: 0;
     display: flex;
     flex-wrap: wrap;
-    gap: 6px;
+    gap: 4px 6px;
 }
 
 .tag {
     display: inline-block;
-    padding: 1.5px 8px;
-    font-size: 8.5pt;
+    padding: 1.5px 7px;
+    font-size: 8pt;
     background: var(--color-tag-bg);
     color: var(--color-tag-text);
     border: 1px solid var(--color-tag-border);
     border-radius: 4px; /* soft rounded edges */
     font-weight: 500;
+    line-height: 1.3;
 }
 
 .tech-tags {
@@ -385,10 +397,6 @@ body {
 }
 
 /* --- Print Optimization --- */
-@page {
-    margin: 12mm 15mm;
-}
-
 @media print {
     body {
         -webkit-print-color-adjust: exact !important;
@@ -396,11 +404,14 @@ body {
     }
 
     .resume-page {
-        padding: 0;
-        box-shadow: none;
+        padding: 8mm 12mm !important;
+        box-shadow: none !important;
+        min-height: unset !important;
+        height: auto !important;
     }
 
-    .entry {
+    .resume-section {
         page-break-inside: avoid;
+        break-inside: avoid;
     }
 }
