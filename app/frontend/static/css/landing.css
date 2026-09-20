@@ -605,9 +605,11 @@ body {
 .showcase-document.theme-modern {
     font-family: 'Roboto', sans-serif;
 }
-.showcase-document.theme-modern .doc-role,
-.showcase-document.theme-modern .doc-divider {
+.showcase-document.theme-modern .doc-role {
     color: #0f766e;
+    background: transparent;
+}
+.showcase-document.theme-modern .doc-divider {
     background: #0f766e;
 }
 .showcase-document.theme-modern .doc-avatar {
@@ -620,9 +622,11 @@ body {
 .showcase-document.theme-minimalist {
     font-family: 'Open Sans', sans-serif;
 }
-.showcase-document.theme-minimalist .doc-role,
-.showcase-document.theme-minimalist .doc-divider {
+.showcase-document.theme-minimalist .doc-role {
     color: #334155;
+    background: transparent;
+}
+.showcase-document.theme-minimalist .doc-divider {
     background: #334155;
 }
 .showcase-document.theme-minimalist .doc-avatar {
