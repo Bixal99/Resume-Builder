@@ -874,7 +874,7 @@ def parse_resume_with_llm(text: str, photo: Optional[str] = None) -> ResumeData:
     Supports candidate profile photo extracted from PDF.
     """
     system_prompt, user_prompt = _get_system_and_user_prompts(text)
-    token = getattr(settings, "hf_token", None) or getattr(settings, "huggingface_token", None)
+    token = getattr(settings, "hf_token", None) or getattr(settings, "huggingface_token", None) or os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
 
     last_error = None
     for model_name in SUPPORTED_MODELS:
@@ -924,7 +924,7 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None):
     """
     skill_to_cat, cat_headers = build_skill_category_map(text)
     system_prompt, user_prompt = _get_system_and_user_prompts(text)
-    token = getattr(settings, "hf_token", None) or getattr(settings, "huggingface_token", None)
+    token = getattr(settings, "hf_token", None) or getattr(settings, "huggingface_token", None) or os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
 
     yield {"event": "status", "stage": 1, "label": "Document read & structured text extracted", "pct": 5}
 
@@ -1271,7 +1271,7 @@ def optimize_bullet_with_llm(bullet: str, role: str = "", company: str = "", mod
     Transforms a bullet point into 3 high-impact STAR resume bullets with quantifiable metrics.
     Modes: 'star' (default), 'metrics', 'action_verbs'.
     """
-    token = getattr(settings, "hf_token", None) or getattr(settings, "huggingface_token", None)
+    token = getattr(settings, "hf_token", None) or getattr(settings, "huggingface_token", None) or os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
     
     mode_instructions = {
         "star": "Format strictly following the STAR method (Situation, Task, Action, Result) with strong action verbs and concrete, realistic metrics (% increase, $ impact, time saved, latency reduced).",
