@@ -27,6 +27,7 @@ from app.services.template_service import TemplateService
 from app.services.parser import (
     extract_text_from_pdf,
     extract_profile_photo_from_pdf,
+    detect_pdf_font,
     parse_resume_with_llm,
     stream_parse_resume_with_llm,
     optimize_bullet_with_llm,
@@ -203,7 +204,12 @@ async def parse_resume_upload(file: UploadFile = File(...)):
 
         text = await asyncio.to_thread(extract_text_from_pdf, content)
         photo = await asyncio.to_thread(extract_profile_photo_from_pdf, content)
-        parsed_data = await asyncio.to_thread(parse_resume_with_llm, text, photo=photo)
+        detected_font = await asyncio.to_thread(detect_pdf_font, content)
+        parsed_data = await asyncio.to_thread(parse_resume_with_llm, text, photo=photo, detected_font=detected_font)
+        if detected_font:
+            if not parsed_data.theme_settings or not isinstance(parsed_data.theme_settings, dict):
+                parsed_data.theme_settings = {}
+            parsed_data.theme_settings["font_family"] = detected_font
         return parsed_data
     except HTTPException:
         raise
@@ -233,6 +239,7 @@ async def parse_resume_upload_stream(file: UploadFile = File(...)):
     try:
         text = await asyncio.to_thread(extract_text_from_pdf, content)
         photo = await asyncio.to_thread(extract_profile_photo_from_pdf, content)
+        detected_font = await asyncio.to_thread(detect_pdf_font, content)
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Could not read PDF: {str(e)}")
 
@@ -241,7 +248,7 @@ async def parse_resume_upload_stream(file: UploadFile = File(...)):
 
         def worker():
             try:
-                for item in stream_parse_resume_with_llm(text, photo=photo):
+                for item in stream_parse_resume_with_llm(text, photo=photo, detected_font=detected_font):
                     q.put(item)
             except Exception as err:
                 q.put({"event": "error", "stage": 0, "detail": str(err), "pct": 0})

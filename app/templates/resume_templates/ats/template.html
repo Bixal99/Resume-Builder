@@ -21,16 +21,16 @@
             {% if resume.address %}
             <span class="contact-item">Location: {{ resume.address }}</span>
             {% endif %}
-            {% if resume.linkedin %}
+            {% if resume.linkedin and (resume.linkedin | format_url) %}
             <span class="contact-item">LinkedIn: <a href="{{ resume.linkedin | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.linkedin }}</a></span>
             {% endif %}
-            {% if resume.github %}
+            {% if resume.github and (resume.github | format_url) %}
             <span class="contact-item">GitHub: <a href="{{ resume.github | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.github }}</a></span>
             {% endif %}
-            {% if resume.portfolio %}
+            {% if resume.portfolio and (resume.portfolio | format_url) %}
             <span class="contact-item">Portfolio: <a href="{{ resume.portfolio | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.portfolio }}</a></span>
             {% endif %}
-            {% if resume.website %}
+            {% if resume.website and (resume.website | format_url) %}
             <span class="contact-item">Website: <a href="{{ resume.website | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.website }}</a></span>
             {% endif %}
         </div>
@@ -123,9 +123,11 @@
             <div class="entry-header">
                 <div class="entry-left">
                     <span class="entry-title"><strong>{{ project.title }}</strong></span>
-                    {% if project.github_url or project.live_url %}
+                    {% set gh_url = project.github_url | format_url %}
+                    {% set lv_url = project.live_url | format_url %}
+                    {% if gh_url or lv_url %}
                     <span class="entry-links">
-                        ({% if project.github_url %}<a href="{{ project.github_url | format_url }}" target="_blank" rel="noopener noreferrer">{{ project.github_url }}</a>{% endif %}{% if project.github_url and project.live_url %}, {% endif %}{% if project.live_url %}<a href="{{ project.live_url | format_url }}" target="_blank" rel="noopener noreferrer">{{ project.live_url }}</a>{% endif %})
+                        ({% if gh_url %}<a href="{{ gh_url }}" target="_blank" rel="noopener noreferrer">{{ project.github_url }}</a>{% endif %}{% if gh_url and lv_url %}, {% endif %}{% if lv_url %}<a href="{{ lv_url }}" target="_blank" rel="noopener noreferrer">{{ project.live_url }}</a>{% endif %})
                     </span>
                     {% endif %}
                 </div>

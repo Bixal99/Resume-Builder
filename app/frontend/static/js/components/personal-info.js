@@ -5,6 +5,13 @@
 const PersonalInfoComponent = (() => {
     function render(container) {
         const s = ResumeStore.get();
+        const cleanLink = (val, dummy) => {
+            if (!val) return '';
+            const v = String(val).trim();
+            if (v.toLowerCase() === dummy.toLowerCase()) return '';
+            if (!v.includes('.') && !v.includes('/') && !v.startsWith('mailto:') && !v.startsWith('tel:')) return '';
+            return v;
+        };
         const isBlank = !s.first_name && !s.last_name;
         container.innerHTML = `
             ${isBlank ? `
@@ -66,19 +73,19 @@ const PersonalInfoComponent = (() => {
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="linkedin">LinkedIn URL</label>
-                    <input class="form-input" id="linkedin" value="${escapeAttr(s.linkedin)}" placeholder="linkedin.com/in/johndoe">
+                    <input class="form-input" id="linkedin" value="${escapeAttr(cleanLink(s.linkedin, 'linkedin'))}" placeholder="linkedin.com/in/johndoe">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="github">GitHub URL</label>
-                    <input class="form-input" id="github" value="${escapeAttr(s.github)}" placeholder="github.com/johndoe">
+                    <input class="form-input" id="github" value="${escapeAttr(cleanLink(s.github, 'github'))}" placeholder="github.com/johndoe">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="portfolio">Portfolio URL</label>
-                    <input class="form-input" id="portfolio" value="${escapeAttr(s.portfolio)}" placeholder="johndoe.com">
+                    <input class="form-input" id="portfolio" value="${escapeAttr(cleanLink(s.portfolio, 'portfolio'))}" placeholder="johndoe.com">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="website">Website</label>
-                    <input class="form-input" id="website" value="${escapeAttr(s.website)}" placeholder="myblog.com">
+                    <input class="form-input" id="website" value="${escapeAttr(cleanLink(s.website, 'website'))}" placeholder="myblog.com">
                 </div>
                 <div class="form-group">
                     <label class="form-label" for="nationality">Nationality</label>

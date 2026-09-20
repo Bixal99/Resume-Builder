@@ -27,6 +27,13 @@ const ProjectsComponent = (() => {
     }
 
     function renderCard(item, index) {
+        const cleanProjUrl = (val, dummy) => {
+            if (!val) return '';
+            const v = String(val).trim();
+            if (v.toLowerCase() === dummy.toLowerCase()) return '';
+            if (!v.includes('.') && !v.includes('/') && !v.startsWith('http')) return '';
+            return v;
+        };
         const title = item.title || `Project ${index + 1}`;
         const techs = item.technologies || [];
         const projId = escapeAttr(item.id);
@@ -54,11 +61,11 @@ const ProjectsComponent = (() => {
                     </div>
                     <div class="form-group">
                         <label class="form-label">GitHub URL</label>
-                        <input class="form-input proj-field" data-id="${projId}" data-field="github_url" value="${escapeAttr(item.github_url || '')}" placeholder="github.com/user/repo">
+                        <input class="form-input proj-field" data-id="${projId}" data-field="github_url" value="${escapeAttr(cleanProjUrl(item.github_url, 'github'))}" placeholder="github.com/user/repo">
                     </div>
                     <div class="form-group">
                         <label class="form-label">Live URL</label>
-                        <input class="form-input proj-field" data-id="${projId}" data-field="live_url" value="${escapeAttr(item.live_url || '')}" placeholder="myapp.com">
+                        <input class="form-input proj-field" data-id="${projId}" data-field="live_url" value="${escapeAttr(cleanProjUrl(item.live_url, 'live'))}" placeholder="myapp.com">
                     </div>
                     <div class="form-group full-width">
                         <label class="form-label">Technologies</label>

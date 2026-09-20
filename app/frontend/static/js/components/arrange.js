@@ -140,7 +140,20 @@ const ArrangeComponent = (() => {
         if (secSpacing) secSpacing.value = themeSettings.section_spacing || 'normal';
         if (lineSpacing) lineSpacing.value = themeSettings.line_spacing || 'normal';
         if (align) align.value = themeSettings.text_alignment || 'left';
-        if (fontFamily) fontFamily.value = themeSettings.font_family || 'default';
+        if (fontFamily) {
+            const tf = String(themeSettings.font_family || 'default').toLowerCase().replace(/['",\s\-]/g, '');
+            let matched = false;
+            for (const opt of fontFamily.options) {
+                const optVal = opt.value.toLowerCase().replace(/['",\s\-]/g, '');
+                const optText = opt.text.toLowerCase().replace(/['",\s\-]/g, '');
+                if (optVal === tf || optText === tf || (tf !== 'default' && (optVal.includes(tf) || tf.includes(optText)))) {
+                    fontFamily.value = opt.value;
+                    matched = true;
+                    break;
+                }
+            }
+            if (!matched) fontFamily.value = themeSettings.font_family || 'default';
+        }
         
         const saveSettings = () => {
             ResumeStore.set('theme_settings', {

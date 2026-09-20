@@ -31,6 +31,7 @@ const ResumeStore = (() => {
         references: [],
         section_order: ['summary', 'experience', 'education', 'projects', 'skills', 'certifications', 'languages', 'awards', 'volunteer', 'references'],
         hidden_sections: [],
+        theme_settings: { section_spacing: 'normal', line_spacing: 'normal', text_alignment: 'left', font_family: 'default' },
     });
 
     let state = defaultState();
@@ -126,6 +127,38 @@ const ResumeStore = (() => {
             });
             targetState.skills = deduplicated;
         }
+
+        // Clean bogus placeholder URLs (e.g. "LinkedIn", "GitHub", "Portfolio", "Website", "Live", "Demo")
+        const DUMMY_WORDS = new Set(['linkedin', 'github', 'portfolio', 'website', 'live', 'demo', 'link', 'url', 'site', 'none', 'null', 'n/a', 'na']);
+        ['linkedin', 'github', 'portfolio', 'website'].forEach(key => {
+            if (targetState[key]) {
+                const val = String(targetState[key]).trim();
+                if (DUMMY_WORDS.has(val.toLowerCase()) || (!val.includes('.') && !val.includes('/') && !val.startsWith('mailto:') && !val.startsWith('tel:'))) {
+                    targetState[key] = '';
+                }
+            }
+        });
+
+        if (Array.isArray(targetState.projects)) {
+            targetState.projects.forEach(proj => {
+                if (proj && typeof proj === 'object') {
+                    ['github_url', 'live_url'].forEach(key => {
+                        if (proj[key]) {
+                            const val = String(proj[key]).trim();
+                            if (DUMMY_WORDS.has(val.toLowerCase()) || (!val.includes('.') && !val.includes('/'))) {
+                                proj[key] = '';
+                            }
+                        }
+                    });
+                }
+            });
+        }
+
+        // Ensure theme_settings exists and is merged
+        targetState.theme_settings = Object.assign(
+            { section_spacing: 'normal', line_spacing: 'normal', text_alignment: 'left', font_family: 'default' },
+            (targetState.theme_settings && typeof targetState.theme_settings === 'object') ? targetState.theme_settings : {}
+        );
     }
 
     function initProfiles() {

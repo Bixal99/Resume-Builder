@@ -523,24 +523,38 @@ const PreviewManager = (() => {
             `;
         }
 
+        const DUMMY_LINK_WORDS = new Set(['linkedin', 'github', 'portfolio', 'website', 'live', 'demo', 'link', 'url', 'site', 'none', 'null', 'n/a', 'na']);
+
         function formatExternalUrl(url) {
             if (!url) return '';
-            url = String(url).trim();
-            if (url.startsWith('http://') || url.startsWith('https://') || url.startsWith('mailto:') || url.startsWith('tel:')) {
-                return url;
+            let u = String(url).trim();
+            if (DUMMY_LINK_WORDS.has(u.toLowerCase())) return '';
+            if (u.startsWith('mailto:') || u.startsWith('tel:')) return u;
+            if (!u.includes('.') && !u.includes('/')) return '';
+            if (u.startsWith('http://') || u.startsWith('https://')) {
+                return u;
             }
-            return 'https://' + url;
+            return 'https://' + u;
         }
 
         function attachExternalLinkDelegation(targetDoc) {
-            if (!targetDoc || targetDoc._linkDelegationAttached) return;
-            targetDoc._linkDelegationAttached = true;
-            targetDoc.addEventListener('click', (e) => {
+            if (!targetDoc) return;
+            const win = targetDoc.defaultView || window;
+            if (targetDoc._linkClickHandler) {
+                targetDoc.removeEventListener('click', targetDoc._linkClickHandler, true);
+            }
+            targetDoc._linkClickHandler = function(e) {
                 const a = e.target.closest('a');
                 if (!a) return;
                 const href = a.getAttribute('href');
                 if (!href || href === '#' || href.startsWith('javascript:')) return;
-                if (href.startsWith('mailto:') || href.startsWith('tel:')) return;
+                
+                if (href.startsWith('mailto:') || href.startsWith('tel:')) {
+                    win.location.href = href;
+                    e.preventDefault();
+                    e.stopPropagation();
+                    return;
+                }
                 
                 e.preventDefault();
                 e.stopPropagation();
@@ -549,7 +563,8 @@ const PreviewManager = (() => {
                     safeUrl = 'https://' + safeUrl;
                 }
                 window.open(safeUrl, '_blank', 'noopener,noreferrer');
-            }, true);
+            };
+            targetDoc.addEventListener('click', targetDoc._linkClickHandler, true);
         }
 
         function normalizePreviewSkillCategory(cat) {

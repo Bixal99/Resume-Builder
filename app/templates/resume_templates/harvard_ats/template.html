@@ -4,11 +4,11 @@
 <!-- ===== HEADER: Name, Title, Contact ===== -->
 <header class="resume-header" style="position: relative; text-align: center; margin-bottom: 2px;">
     {% if has_personal %}
-    <h1 class="resume-name" style="font-size: 14pt; margin: 0; font-family: 'Times New Roman', serif; text-transform: uppercase;">{{ full_name }}</h1>
+    <h1 class="resume-name" style="font-size: 14pt; margin: 0; font-family: inherit; text-transform: uppercase;">{{ full_name }}</h1>
     {% endif %}
     
     {% if resume.professional_title %}
-    <h2 class="resume-title" style="font-size: 10pt; margin: 4px 0; font-family: 'Times New Roman', serif; font-weight: normal;">{{ resume.professional_title }}</h2>
+    <h2 class="resume-title" style="font-size: 10pt; margin: 4px 0; font-family: inherit; font-weight: normal;">{{ resume.professional_title }}</h2>
     {% endif %}
     
     {% if has_contact %}
@@ -17,11 +17,11 @@
         {% if resume.email %}{% set _ = contact_items.append('<a href="mailto:' ~ resume.email ~ '">' ~ (resume.email_label or resume.email) ~ '</a>') %}{% endif %}
         {% if resume.phone %}{% set _ = contact_items.append(resume.phone) %}{% endif %}
         {% if resume.address %}{% set _ = contact_items.append(resume.address) %}{% endif %}
-        {% if resume.linkedin %}{% set _ = contact_items.append('<a href="' ~ (resume.linkedin | format_url) ~ '" target="_blank" rel="noopener noreferrer">' ~ (resume.linkedin_label or "LinkedIn") ~ '</a>') %}{% endif %}
-        {% if resume.github %}{% set _ = contact_items.append('<a href="' ~ (resume.github | format_url) ~ '" target="_blank" rel="noopener noreferrer">' ~ (resume.github_label or "GitHub") ~ '</a>') %}{% endif %}
-        {% if resume.portfolio %}{% set _ = contact_items.append('<a href="' ~ (resume.portfolio | format_url) ~ '" target="_blank" rel="noopener noreferrer">' ~ (resume.portfolio_label or "Portfolio") ~ '</a>') %}{% endif %}
-        {% if resume.upwork %}{% set _ = contact_items.append('<a href="' ~ (resume.upwork | format_url) ~ '" target="_blank" rel="noopener noreferrer">' ~ (resume.upwork_label or "Upwork") ~ '</a>') %}{% endif %}
-        {% if resume.website %}{% set _ = contact_items.append('<a href="' ~ (resume.website | format_url) ~ '" target="_blank" rel="noopener noreferrer">Website</a>') %}{% endif %}
+        {% if resume.linkedin and (resume.linkedin | format_url) %}{% set _ = contact_items.append('<a href="' ~ (resume.linkedin | format_url) ~ '" target="_blank" rel="noopener noreferrer">' ~ (resume.linkedin_label or "LinkedIn") ~ '</a>') %}{% endif %}
+        {% if resume.github and (resume.github | format_url) %}{% set _ = contact_items.append('<a href="' ~ (resume.github | format_url) ~ '" target="_blank" rel="noopener noreferrer">' ~ (resume.github_label or "GitHub") ~ '</a>') %}{% endif %}
+        {% if resume.portfolio and (resume.portfolio | format_url) %}{% set _ = contact_items.append('<a href="' ~ (resume.portfolio | format_url) ~ '" target="_blank" rel="noopener noreferrer">' ~ (resume.portfolio_label or "Portfolio") ~ '</a>') %}{% endif %}
+        {% if resume.upwork and (resume.upwork | format_url) %}{% set _ = contact_items.append('<a href="' ~ (resume.upwork | format_url) ~ '" target="_blank" rel="noopener noreferrer">' ~ (resume.upwork_label or "Upwork") ~ '</a>') %}{% endif %}
+        {% if resume.website and (resume.website | format_url) %}{% set _ = contact_items.append('<a href="' ~ (resume.website | format_url) ~ '" target="_blank" rel="noopener noreferrer">Website</a>') %}{% endif %}
         
         {{ contact_items | join(' | ') | safe }}
     </div>
@@ -123,8 +123,8 @@
                 <div class="entry-right" style="text-align: right; font-size: 8.5pt;">
                     {% if proj.date %}<span style="margin-right: 8px;">{{ proj.date }}</span>{% endif %}
                     {% set links = [] %}
-                    {% if proj.github_url %}{% set _ = links.append('<a href="' ~ (proj.github_url | format_url) ~ '" target="_blank" rel="noopener noreferrer">' ~ (resume.github_label or "GitHub") ~ '</a>') %}{% endif %}
-                    {% if proj.live_url %}{% set _ = links.append('<a href="' ~ (proj.live_url | format_url) ~ '" target="_blank" rel="noopener noreferrer">Live Demo</a>') %}{% endif %}
+                    {% if proj.github_url and (proj.github_url | format_url) %}{% set _ = links.append('<a href="' ~ (proj.github_url | format_url) ~ '" target="_blank" rel="noopener noreferrer">' ~ (resume.github_label or "GitHub") ~ '</a>') %}{% endif %}
+                    {% if proj.live_url and (proj.live_url | format_url) %}{% set _ = links.append('<a href="' ~ (proj.live_url | format_url) ~ '" target="_blank" rel="noopener noreferrer">Live Demo</a>') %}{% endif %}
                     {{ links | join(' | ') | safe }}
                 </div>
                 {% endif %}

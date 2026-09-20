@@ -24,6 +24,7 @@
             {% if resume.theme_settings.font_family and resume.theme_settings.font_family != 'default' %}
             --font-heading: {{ resume.theme_settings.font_family | safe }} !important;
             --font-body: {{ resume.theme_settings.font_family | safe }} !important;
+            --font-family: {{ resume.theme_settings.font_family | safe }} !important;
             {% endif %}
         }
         .resume-page {
@@ -35,6 +36,13 @@
             font-family: {{ resume.theme_settings.font_family | safe }} !important;
             {% endif %}
         }
+        {% if resume.theme_settings.font_family and resume.theme_settings.font_family != 'default' %}
+        body,
+        .resume-page,
+        .resume-page * {
+            font-family: {{ resume.theme_settings.font_family | safe }} !important;
+        }
+        {% endif %}
         .resume-section {
             margin-bottom: var(--user-section-gap) !important;
         }
@@ -42,6 +50,29 @@
             margin-bottom: 0 !important;
         }
         {% endif %}
+
+        /* Font Imports */
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Roboto:wght@300;400;500;700&family=Open+Sans:wght@300;400;600;700&family=Lato:wght@300;400;700&family=Montserrat:wght@400;500;600;700&family=Poppins:wght@300;400;500;600;700&family=Merriweather:wght@300;400;700&family=Playfair+Display:wght@400;600;700&family=Lora:wght@400;500;600;700&family=Oswald:wght@400;500;600&display=swap');
+
+        /* Clean, ATS-Safe Bullet Points */
+        .entry-list,
+        .skills-list,
+        .summary-text ul,
+        .entry-description ul,
+        .section-content ul {
+            list-style-type: disc !important;
+            padding-left: 14px !important;
+            margin: 2px 0 3px 0 !important;
+        }
+        .entry-list li,
+        .skills-list li,
+        .summary-text li,
+        .entry-description li,
+        .section-content li {
+            margin-bottom: 2px !important;
+            padding-left: 0 !important;
+            line-height: 1.3 !important;
+        }
 
         /* Skill Category Title Wrap & Alignment */
         .skill-category:has(.skill-tags) {
@@ -78,57 +109,68 @@
             line-height: 1.3 !important;
         }
 
-        /* Profile Photo Placement & Header Flow */
+        /* Profile Photo Placement & Header Flow (Photo Up, Full-width 1-Line Contacts) */
         .resume-header {
-            display: flex !important;
-            justify-content: space-between !important;
-            align-items: center !important;
-            gap: 16px !important;
-            position: static !important;
-            margin-bottom: 10px !important;
+            display: grid !important;
+            grid-template-columns: 1fr auto !important;
+            align-items: start !important;
+            gap: 2px 14px !important;
+            margin-bottom: 8px !important;
             padding-bottom: 6px !important;
         }
         .header-content {
-            flex: 1 1 auto !important;
-            min-width: 0 !important;
-            width: auto !important;
+            display: contents !important;
         }
-        .resume-header:has(.header-photo) .resume-name,
-        .resume-header:has(.header-photo) .resume-title {
+        .resume-name {
+            grid-column: 1 / 2 !important;
+            grid-row: 1 !important;
+            padding-right: 0 !important;
+        }
+        .resume-title {
+            grid-column: 1 / 2 !important;
+            grid-row: 2 !important;
             padding-right: 0 !important;
         }
         .header-photo {
+            grid-column: 2 / 3 !important;
+            grid-row: 1 / 3 !important;
+            justify-self: end !important;
+            align-self: start !important;
             position: static !important;
-            flex: 0 0 88px !important;
-            width: 88px !important;
-            height: 88px !important;
-            margin: 0 !important;
+            flex: 0 0 74px !important;
+            width: 74px !important;
+            height: 74px !important;
+            margin: -4px 0 0 0 !important;
             display: flex !important;
             align-items: center !important;
             justify-content: center !important;
             z-index: 2 !important;
         }
         .profile-photo {
-            width: 88px !important;
-            height: 88px !important;
+            width: 74px !important;
+            height: 74px !important;
             border-radius: 50% !important;
             object-fit: cover !important;
-            border: 2.5px solid var(--color-accent, #3b82f6) !important;
+            border: 2px solid var(--color-accent, #3b82f6) !important;
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12) !important;
         }
         .contact-info {
+            grid-column: 1 / -1 !important;
             width: 100% !important;
             display: flex !important;
-            flex-wrap: wrap !important;
+            flex-wrap: nowrap !important;
             align-items: center !important;
-            gap: 3px 12px !important;
+            gap: 2px 8px !important;
+            font-size: 8pt !important;
+            margin-top: 4px !important;
         }
         .contact-item {
             display: inline-flex !important;
             align-items: center !important;
             white-space: nowrap !important;
-            gap: 4px !important;
+            gap: 3.5px !important;
             line-height: 1.3 !important;
+            font-size: 8pt !important;
         }
         .contact-item .icon,
         .contact-item svg {
@@ -136,6 +178,26 @@
             height: 12px !important;
             vertical-align: middle !important;
             flex-shrink: 0 !important;
+        }
+
+        /* High-visibility, Clickable Preserved Hyperlinks */
+        .contact-item a,
+        a.contact-link,
+        .entry-link,
+        .project-link,
+        .resume-link {
+            color: var(--color-link, #2563eb) !important;
+            text-decoration: underline !important;
+            text-decoration-thickness: 1.2px !important;
+            text-underline-offset: 2.5px !important;
+            font-weight: 500 !important;
+            cursor: pointer !important;
+            transition: color 0.15s ease !important;
+        }
+        .contact-item a:hover,
+        .entry-link:hover {
+            color: #1d4ed8 !important;
+            text-decoration: underline !important;
         }
 
         /* PDF Export & Print Fixes */

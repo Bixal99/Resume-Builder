@@ -23,25 +23,126 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
     """
     Extracts text from a digital PDF using PyMuPDF.
     Sorts blocks by physical layout (Y, then X) to preserve document structure.
+    Also extracts all embedded hyperlink annotations and associates them with anchor words.
     """
     try:
         doc = fitz.open("pdf", file_bytes)
         text = ""
-        for page in doc:
+        embedded_links = []
+
+        for page_idx, page in enumerate(doc):
+            # Extract text blocks
             blocks = page.get_text("blocks")
             blocks.sort(key=lambda b: (round(b[1] / 10), b[0]))
             for b in blocks:
                 if b[6] == 0:  # text block
                     text += b[4].strip() + "\n\n"
+
+            # Extract hyperlink annotations
+            for link in page.get_links():
+                uri = (link.get("uri") or "").strip()
+                if not uri:
+                    continue
+                if not (uri.startswith("http://") or uri.startswith("https://") or uri.startswith("mailto:") or uri.startswith("tel:")):
+                    continue
+                rect = link.get("from")
+                anchor_text = page.get_textbox(rect).strip() if rect else ""
+                # Also get surrounding line context
+                context = ""
+                if rect:
+                    ctx_rect = fitz.Rect(max(0, rect.x0 - 40), max(0, rect.y0 - 3), rect.x1 + 80, rect.y1 + 3)
+                    context = page.get_textbox(ctx_rect).strip().replace("\n", " ")
+                
+                embedded_links.append({
+                    "anchor": anchor_text,
+                    "context": context,
+                    "uri": uri
+                })
         
         text = text.strip()
         if not text:
             raise ValueError("No extractable text found in the PDF. Scanned images are not currently supported.")
+
+        # If any embedded hyperlinks were detected, append them explicitly so the AI sees real URLs
+        if embedded_links:
+            text += "\n\n--- EMBEDDED HYPERLINKS IN RESUME ---\n"
+            seen_uris = set()
+            for item in embedded_links:
+                if item["uri"] in seen_uris:
+                    continue
+                seen_uris.add(item["uri"])
+                anchor = item["anchor"] or "Link"
+                ctx = f" (Context: '{item['context']}')" if item["context"] and item["context"] != anchor else ""
+                text += f"- Anchor: '{anchor}'{ctx} -> Target URL: {item['uri']}\n"
             
         return text
     except Exception as e:
         logger.error(f"Failed to extract text from PDF: {e}")
         raise ValueError(f"Could not read PDF file: {str(e)}")
+
+
+SUPPORTED_FONT_FAMILY_MAP = [
+    ("poppins", "'Poppins', sans-serif"),
+    ("roboto", "'Roboto', sans-serif"),
+    ("arial", "Arial, sans-serif"),
+    ("helvetica", "Arial, sans-serif"),
+    ("calibri", "Arial, sans-serif"),
+    ("segoe", "Arial, sans-serif"),
+    ("liberationsans", "Arial, sans-serif"),
+    ("opensans", "'Open Sans', sans-serif"),
+    ("open sans", "'Open Sans', sans-serif"),
+    ("dejavusans", "'Open Sans', sans-serif"),
+    ("lato", "'Lato', sans-serif"),
+    ("montserrat", "'Montserrat', sans-serif"),
+    ("oswald", "'Oswald', sans-serif"),
+    ("merriweather", "'Merriweather', serif"),
+    ("playfair", "'Playfair Display', serif"),
+    ("lora", "'Lora', serif"),
+    ("georgia", "Georgia, serif"),
+    ("timesnewroman", "'Times New Roman', Times, serif"),
+    ("times", "'Times New Roman', Times, serif"),
+]
+
+
+def detect_pdf_font(file_bytes: bytes) -> Optional[str]:
+    """
+    Inspects text span font families across all pages in the PDF.
+    Counts character volume per font family to identify the dominant document typeface.
+    Maps to the closest supported font family for document theme settings.
+    """
+    if not file_bytes:
+        return None
+    try:
+        doc = fitz.open("pdf", file_bytes)
+        font_counts: dict[str, int] = {}
+        for page in doc:
+            d = page.get_text("dict")
+            for block in d.get("blocks", []):
+                for line in block.get("lines", []):
+                    for span in line.get("spans", []):
+                        font_name = str(span.get("font", "")).strip().lower()
+                        text = span.get("text", "")
+                        if font_name and text.strip():
+                            font_counts[font_name] = font_counts.get(font_name, 0) + len(text)
+        
+        if not font_counts:
+            return None
+        
+        # Sort fonts by total character count descending
+        sorted_fonts = sorted(font_counts.items(), key=lambda x: x[1], reverse=True)
+        for raw_font, _ in sorted_fonts:
+            cleaned = raw_font.replace("-", "").replace(" ", "").replace("_", "").lower()
+            for key, val in SUPPORTED_FONT_FAMILY_MAP:
+                k_clean = key.replace(" ", "").lower()
+                if k_clean in cleaned or key in raw_font.lower():
+                    logger.info(f"Detected dominant PDF font '{raw_font}' mapped to '{val}'")
+                    return val
+                    
+        return None
+    except Exception as e:
+        logger.warning(f"Font detection notice: {e}")
+        return None
+
 
 
 def extract_profile_photo_from_pdf(file_bytes: bytes) -> Optional[str]:
@@ -166,8 +267,11 @@ CRITICAL PARSING RULES:
    "degree": "Bachelor of Science", "field_of_study": "Computer Science".
    Example: If the resume says "Master of Science in Data Science", you MUST output:
    "degree": "Master of Science", "field_of_study": "Data Science".
-7. LINKS & URLS:
-   Preserve all links (LinkedIn, GitHub, Portfolio, Website, project repositories and demos). If a URL is written without http/https (e.g. "github.com/username", "LinkedIn.com/in/..."), preserve it accurately.
+7. LINKS & URLS (CRITICAL):
+   - Extract real destination URLs for 'linkedin', 'github', 'portfolio', 'website', 'github_url', and 'live_url'.
+   - Check both the resume text AND the '--- EMBEDDED HYPERLINKS IN RESUME ---' section at the bottom of the document. If an anchor word like "LinkedIn", "GitHub", or "Live" is listed with a target URL, use that target URL!
+   - NEVER, UNDER ANY CIRCUMSTANCES, output generic label words like "LinkedIn", "GitHub", "Portfolio", "Website", "Live", "Demo", or "Link" as the URL value! A URL must be an actual web destination (e.g. "https://linkedin.com/in/username", "github.com/username", "https://myportfolio.dev").
+   - If no valid URL or handle exists for a field, set it to empty string "". NEVER output dummy text!
 8. EDUCATION GRADE:
    Extract GPA, grades, or academic standing (e.g. "2.85/4.0", "3.8 GPA") into the 'grade' field of education.
 9. CERTIFICATIONS & CERTIFICATES:
@@ -863,15 +967,75 @@ def post_process_json(parsed_json, raw_text: str = None):
             for item in parsed_json[section]:
                 if isinstance(item, dict) and not item.get("id"):
                     item["id"] = f"{prefix}_{uuid.uuid4().hex[:8]}"
+
+    # 9. Clean, validate, and preserve all URLs (Contact & Projects)
+    dummy_words = {"linkedin", "github", "portfolio", "website", "live", "demo", "link", "url", "site", "web", "none", "null", "n/a", "na"}
+    
+    # Extract any embedded hyperlinks found in raw_text
+    embedded_links: list[tuple[str, str, str]] = []  # (anchor, context, url)
+    if raw_text and "--- EMBEDDED HYPERLINKS IN RESUME ---" in raw_text:
+        for m in re.finditer(r"- Anchor:\s*'([^']*)'(?:\s*\(Context:\s*'([^']*)'\))?\s*->\s*Target URL:\s*(\S+)", raw_text):
+            anchor = (m.group(1) or "").strip().lower()
+            ctx = (m.group(2) or "").strip().lower()
+            url = m.group(3).strip()
+            if url:
+                embedded_links.append((anchor, ctx, url))
+
+    def is_bad_url(u: str) -> bool:
+        if not u:
+            return True
+        u_clean = u.strip().lower()
+        if u_clean in dummy_words:
+            return True
+        if "." not in u_clean and "/" not in u_clean and not u_clean.startswith("mailto:") and not u_clean.startswith("tel:"):
+            return True
+        return False
+
+    for field in ["linkedin", "github", "portfolio", "website"]:
+        val = str(parsed_json.get(field, "") or "").strip()
+        if is_bad_url(val):
+            # Attempt to recover real URL from embedded links
+            recovered = ""
+            if field == "linkedin":
+                recovered = next((u for a, c, u in embedded_links if "linkedin.com" in u.lower()), "")
+            elif field == "github":
+                recovered = next((u for a, c, u in embedded_links if "github.com" in u.lower() and u.count("/") <= 4), "")
+            elif field in ("portfolio", "website"):
+                recovered = next((u for a, c, u in embedded_links if field in a or field in c or ("linkedin.com" not in u.lower() and "github.com" not in u.lower() and not u.startswith("mailto:"))), "")
+            parsed_json[field] = recovered
+
+    # Clean project URLs
+    if "projects" in parsed_json and isinstance(parsed_json["projects"], list):
+        for proj in parsed_json["projects"]:
+            if isinstance(proj, dict):
+                p_title = (proj.get("title") or "").strip().lower()
+                for u_field in ["github_url", "live_url"]:
+                    u_val = str(proj.get(u_field, "") or "").strip()
+                    if is_bad_url(u_val):
+                        recovered = ""
+                        if u_field == "github_url":
+                            # Try matching github URL with project title or repo structure
+                            if p_title:
+                                p_words = [w for w in re.split(r'\W+', p_title) if len(w) > 3]
+                                recovered = next((u for a, c, u in embedded_links if "github.com" in u.lower() and any(w in u.lower() or w in c for w in p_words)), "")
+                            if not recovered:
+                                recovered = next((u for a, c, u in embedded_links if "github.com" in u.lower() and u.count("/") > 4), "")
+                        elif u_field == "live_url":
+                            if p_title:
+                                p_words = [w for w in re.split(r'\W+', p_title) if len(w) > 3]
+                                recovered = next((u for a, c, u in embedded_links if ("github.com" not in u.lower() and "linkedin.com" not in u.lower()) and any(w in u.lower() or w in c for w in p_words)), "")
+                            if not recovered:
+                                recovered = next((u for a, c, u in embedded_links if a in ("live", "demo") or ("github.com" not in u.lower() and "linkedin.com" not in u.lower() and not u.startswith("mailto:"))), "")
+                        proj[u_field] = recovered
         
     return parsed_json
 
 
-def parse_resume_with_llm(text: str, photo: Optional[str] = None) -> ResumeData:
+def parse_resume_with_llm(text: str, photo: Optional[str] = None, detected_font: Optional[str] = None) -> ResumeData:
     """
     Parses resume text using Hugging Face Inference API with streaming token assembly.
     Using stream=True prevents 504 Gateway Timeouts by receiving tokens continuously.
-    Supports candidate profile photo extracted from PDF.
+    Supports candidate profile photo extracted from PDF and preserved font styling.
     """
     system_prompt, user_prompt = _get_system_and_user_prompts(text)
     token = getattr(settings, "hf_token", None) or getattr(settings, "huggingface_token", None) or os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
@@ -903,6 +1067,10 @@ def parse_resume_with_llm(text: str, photo: Optional[str] = None) -> ResumeData:
             parsed_json = post_process_json(parsed_json, raw_text=text)
             if photo:
                 parsed_json["photo"] = photo
+            if detected_font:
+                if not parsed_json.get("theme_settings") or not isinstance(parsed_json["theme_settings"], dict):
+                    parsed_json["theme_settings"] = {}
+                parsed_json["theme_settings"]["font_family"] = detected_font
             cleaned_json = clean_dict(parsed_json)
             return ResumeData(**cleaned_json)
             
@@ -913,13 +1081,14 @@ def parse_resume_with_llm(text: str, photo: Optional[str] = None) -> ResumeData:
     raise ValueError(f"Failed to process the resume with AI models. Last error: {last_error}")
 
 
-def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None):
+def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detected_font: Optional[str] = None):
     """
     Generator yielding live progress events for real-time frontend feedback:
       - status stages (1 to 5)
       - token counts / chunks as generated
       - field and section updates as parsed
       - candidate profile photo if present
+      - preserved PDF font settings
       - final validated resume payload
     """
     skill_to_cat, cat_headers = build_skill_category_map(text)
@@ -1233,10 +1402,18 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None):
             parsed_json = post_process_json(parsed_json, raw_text=text)
             if photo:
                 parsed_json["photo"] = photo
+            if detected_font:
+                if not parsed_json.get("theme_settings") or not isinstance(parsed_json["theme_settings"], dict):
+                    parsed_json["theme_settings"] = {}
+                parsed_json["theme_settings"]["font_family"] = detected_font
             cleaned_json = clean_dict(parsed_json)
             validated = ResumeData(**cleaned_json)
             if photo and not validated.photo:
                 validated.photo = photo
+            if detected_font:
+                if not validated.theme_settings:
+                    validated.theme_settings = {}
+                validated.theme_settings["font_family"] = detected_font
 
             # Emit section_update for any sections populated via fallback if not emitted during streaming
             for sec in ["experience", "education", "projects", "certifications", "languages", "awards", "volunteer"]:

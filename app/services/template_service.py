@@ -128,14 +128,35 @@ def parse_bullets(text: str) -> str:
     return Markup("".join(out))
 
 
-def format_url(url: str) -> str:
-    """Ensure URL has proper scheme for external navigation."""
+DUMMY_URL_WORDS = {
+    "linkedin", "github", "portfolio", "website", "live", "demo",
+    "link", "url", "site", "web", "none", "null", "n/a", "na"
+}
+
+
+def is_valid_url(url: str) -> bool:
     if not url:
+        return False
+    u = str(url).strip()
+    if u.lower() in DUMMY_URL_WORDS:
+        return False
+    if u.startswith("mailto:") or u.startswith("tel:"):
+        return True
+    # Valid external URLs should have a dot (e.g. .com, .io, .org, .dev) or a path slash
+    if "." not in u and "/" not in u:
+        return False
+    return True
+
+
+def format_url(url: str) -> str:
+    """Ensure URL has proper scheme for external navigation. Returns empty string for invalid/dummy values."""
+    if not url or not is_valid_url(url):
         return ""
-    url = str(url).strip()
-    if url.startswith("http://") or url.startswith("https://") or url.startswith("mailto:") or url.startswith("tel:"):
-        return url
-    return f"https://{url}"
+    u = str(url).strip()
+    if u.startswith("http://") or u.startswith("https://") or u.startswith("mailto:") or u.startswith("tel:"):
+        return u
+    return f"https://{u}"
+
 
 
 def reorder_html_sections(html: str, section_order: list[str]) -> str:

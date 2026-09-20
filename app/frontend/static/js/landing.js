@@ -89,4 +89,18 @@ document.addEventListener('DOMContentLoaded', () => {
             window.location.href = '/builder';
         }
     });
+
+    // --- Hero Showcase Template Switcher ---
+    const themeTabs = document.querySelectorAll('.showcase-theme-tab');
+    const showcaseDoc = document.getElementById('showcase-doc');
+    if (themeTabs.length > 0 && showcaseDoc) {
+        themeTabs.forEach(tab => {
+            tab.addEventListener('click', () => {
+                themeTabs.forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                const theme = tab.dataset.theme || 'contemporary';
+                showcaseDoc.className = `showcase-document theme-${theme}`;
+            });
+        });
+    }
 });
