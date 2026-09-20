@@ -3,33 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Professional Resume Builder — Create Stunning Resumes in Minutes</title>
-    <meta name="description" content="Build professional, ATS-friendly resumes with our intuitive builder. Live preview, beautiful templates, and instant PDF download.">
+    <title>ResumeBuilder — Next-Gen AI Resume Builder & ATS Scanner</title>
+    <meta name="description" content="Build professional, ATS-optimized resumes in minutes. Live real-time preview, intelligent page budgeting, executive templates, and instant pixel-perfect PDF export. 100% free.">
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📄</text></svg>">
 
     <!-- Google Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="/static/css/variables.css?v=2.1.0">
-    <link rel="stylesheet" href="/static/css/base.css?v=2.1.0">
-    <link rel="stylesheet" href="/static/css/components.css?v=2.1.0">
-    <link rel="stylesheet" href="/static/css/landing.css?v=2.1.0">
+    <link rel="stylesheet" href="/static/css/variables.css?v=2.2.0">
+    <link rel="stylesheet" href="/static/css/base.css?v=2.2.0">
+    <link rel="stylesheet" href="/static/css/components.css?v=2.2.0">
+    <link rel="stylesheet" href="/static/css/landing.css?v=2.2.0">
 </head>
 <body>
     <!-- ===== NAVIGATION ===== -->
     <nav class="nav" id="main-nav">
         <div class="container nav-container">
-            <a href="/" class="nav-logo">
-                <span class="logo-icon">📄</span>
+            <a href="/" class="nav-logo" aria-label="ResumeBuilder Home">
+                <span class="logo-icon-wrapper">
+                    <span class="logo-icon">📄</span>
+                </span>
                 <span class="logo-text">ResumeBuilder<span class="logo-dot">.</span></span>
+                <span class="nav-version-badge">v2.2</span>
             </a>
             <div class="nav-links">
                 <a href="#features" class="nav-link">Features</a>
                 <a href="#how-it-works" class="nav-link">How it Works</a>
-                <a href="#templates" class="nav-link">Templates</a>
-                <a href="#" class="btn btn-primary btn-sm" id="nav-cta-btn">Build Your Resume</a>
+                <a href="#comparison" class="nav-link">Why Us</a>
+                <a href="#templates" class="nav-link">Starters & Templates</a>
+                <a href="#faq" class="nav-link">FAQ</a>
+                <a href="#" class="btn btn-primary btn-sm nav-cta-pulse" id="nav-cta-btn">
+                    <span>Build Your Resume</span>
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+                </a>
             </div>
             <button class="nav-toggle" id="nav-toggle" aria-label="Toggle navigation">
                 <span></span><span></span><span></span>
@@ -41,110 +50,216 @@
     <section class="hero" id="hero">
         <div class="hero-bg">
             <div class="hero-gradient"></div>
-            <div class="hero-grid"></div>
+            <div class="hero-mesh-grid"></div>
             <div class="hero-orb hero-orb-1"></div>
             <div class="hero-orb hero-orb-2"></div>
             <div class="hero-orb hero-orb-3"></div>
+            <div class="hero-orb hero-orb-center"></div>
         </div>
+
         <div class="container hero-container-split">
-            <!-- Hero Left: Title, Description, Actions -->
+            <!-- Hero Left: Typography & CTAs -->
             <div class="hero-left-column animate-fade-in-up">
                 <div class="hero-badge animate-fade-in">
-                    <span class="badge badge-success">✨ The Next-Gen CV Builder</span>
+                    <span class="badge-pill">
+                        <span class="badge-dot-glow"></span>
+                        <span class="badge-text">Next-Gen AI Resume Architect</span>
+                        <span class="badge-tag">100% Free</span>
+                    </span>
                 </div>
+
                 <h1 class="hero-title">
                     Build a Resume That
-                    <span class="text-gradient">Stands Out</span>
+                    <span class="hero-title-gradient">Commands Attention</span>
                 </h1>
+
                 <p class="hero-description">
-                    Create professional, ATS-optimized resumes in minutes with our intuitive builder.
-                    Watch your changes update in real-time, pick gorgeous layouts, and export to PDF instantly.
+                    Transform your career story into an ATS-crushing, professionally formatted resume.
+                    Real-time live budgeting, instant AI parsing, 8 executive templates, and zero hidden paywalls.
                 </p>
+
                 <div class="hero-actions">
-                    <a href="#" class="btn btn-primary btn-lg" id="hero-cta-btn">
+                    <a href="#" class="btn btn-primary btn-lg hero-cta-btn-glow" id="hero-cta-btn">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                        Start Building Free
+                        <span>Start Building Free</span>
                     </a>
-                    <a href="#templates" class="btn btn-outline btn-lg" style="font-weight: 600;">
-                        ⚡ Try Pre-filled Templates
+                    <a href="#templates" class="btn btn-outline btn-lg hero-secondary-btn">
+                        <span>⚡ Try Pre-filled Starters</span>
                     </a>
                 </div>
-                <div class="hero-stats">
-                    <div class="stat">
-                        <span class="stat-number">100%</span>
-                        <span class="stat-label">Free</span>
+
+                <div class="hero-trust-row">
+                    <div class="trust-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>No Credit Card</span>
                     </div>
-                    <div class="stat-divider"></div>
-                    <div class="stat">
-                        <span class="stat-number">Live ATS</span>
-                        <span class="stat-label">Scanner</span>
+                    <div class="trust-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>Zero Watermarks</span>
                     </div>
-                    <div class="stat-divider"></div>
-                    <div class="stat">
-                        <span class="stat-number">3 Starters</span>
-                        <span class="stat-label">Pre-filled</span>
+                    <div class="trust-item">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                        <span>100% Private</span>
                     </div>
-                    <div class="stat-divider"></div>
-                    <div class="stat">
-                        <span class="stat-number">JSON</span>
-                        <span class="stat-label">Standard</span>
+                </div>
+
+                <div class="hero-stats-bar">
+                    <div class="stat-card">
+                        <div class="stat-val">98%</div>
+                        <div class="stat-desc">ATS Pass Rate</div>
+                    </div>
+                    <div class="stat-sep"></div>
+                    <div class="stat-card">
+                        <div class="stat-val">0.4s</div>
+                        <div class="stat-desc">PDF Render Speed</div>
+                    </div>
+                    <div class="stat-sep"></div>
+                    <div class="stat-card">
+                        <div class="stat-val">8+</div>
+                        <div class="stat-desc">Verified Themes</div>
+                    </div>
+                    <div class="stat-sep"></div>
+                    <div class="stat-card">
+                        <div class="stat-val">100%</div>
+                        <div class="stat-desc">Open Standard</div>
                     </div>
                 </div>
             </div>
 
-            <!-- Hero Right: Live Interactive Mockup -->
-            <div class="hero-right-column animate-fade-in-up" style="animation-delay: 150ms;">
-                <div class="hero-mockup-window">
-                    <div class="mockup-titlebar">
-                        <div class="titlebar-dots">
-                            <span class="dot dot-red"></span>
-                            <span class="dot dot-yellow"></span>
-                            <span class="dot dot-green"></span>
+            <!-- Hero Right: Interactive Dual-Studio Mockup (John Doe) -->
+            <div class="hero-right-column animate-fade-in-up">
+                <div class="mockup-scene-wrapper">
+                    <!-- Floating Badge: Top Right -->
+                    <div class="floating-badge badge-ats-score">
+                        <div class="floating-icon-wrap bg-emerald">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><path d="m9 12 2 2 4-4"/></svg>
                         </div>
-                        <div class="titlebar-address">resumebuilder.io/editor</div>
-                        <div style="margin-left: auto; font-size: 10px; font-weight: 700; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0; padding: 2px 8px; border-radius: 12px; display: flex; align-items: center; gap: 4px;">
-                            <span>🎯 94% ATS Match</span>
+                        <div class="floating-badge-content">
+                            <div class="floating-badge-title">98% ATS Keyword Match</div>
+                            <div class="floating-badge-sub">Optimized for Google, Meta & Stripe</div>
                         </div>
                     </div>
-                    <div class="mockup-editor-split">
-                        <!-- Mockup Form Panel -->
-                        <div class="mockup-panel mockup-form-panel">
-                            <div class="mockup-section-title">Personal Details</div>
-                            <div class="mockup-input-group">
-                                <label class="mockup-label">Job Title</label>
-                                <div class="mockup-input-field"><span class="typing-text">Software Engineer</span></div>
+
+                    <!-- Floating Badge: Bottom Left -->
+                    <div class="floating-badge badge-pdf-speed">
+                        <div class="floating-icon-wrap bg-indigo">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="12" y1="18" x2="12" y2="12"/><line x1="9" y1="15" x2="15" y2="15"/></svg>
+                        </div>
+                        <div class="floating-badge-content">
+                            <div class="floating-badge-title">Pixel-Perfect PDF</div>
+                            <div class="floating-badge-sub">Vector Playwright compilation</div>
+                        </div>
+                    </div>
+
+                    <!-- Main Glassmorphic Studio Window -->
+                    <div class="hero-mockup-window">
+                        <!-- Studio Titlebar -->
+                        <div class="mockup-titlebar">
+                            <div class="titlebar-dots">
+                                <span class="dot dot-red"></span>
+                                <span class="dot dot-yellow"></span>
+                                <span class="dot dot-green"></span>
                             </div>
-                            <div class="mockup-section-title">Skills</div>
-                            <div class="mockup-tags-container">
-                                <span class="mockup-tag">React</span>
-                                <span class="mockup-tag">Python</span>
-                                <span class="mockup-tag">FastAPI</span>
-                                <span class="mockup-tag tag-new">Docker</span>
+                            <div class="titlebar-address-bar">
+                                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                                <span>resumebuilder.io/studio/live-editor</span>
+                            </div>
+                            <div class="titlebar-status-chip">
+                                <span class="status-pulse-dot"></span>
+                                <span>Live Synced</span>
                             </div>
                         </div>
-                        <!-- Mockup CV Preview -->
-                        <div class="mockup-panel mockup-cv-panel">
-                            <div class="mockup-cv-header">
-                                <div class="mockup-cv-name">Hasan Ahmad</div>
-                                <div class="mockup-cv-title">Software Engineer</div>
-                                <div class="mockup-cv-contacts">
-                                    <span>✉ hasanahmad1302003@gmail.com</span>
+
+                        <!-- Studio Body (Editor on Left, Sheet Preview on Right) -->
+                        <div class="mockup-editor-split">
+                            <!-- Left: Interactive Form Controls -->
+                            <div class="mockup-panel mockup-form-panel">
+                                <div class="mockup-tabs-bar">
+                                    <span class="mockup-tab active">👤 Personal</span>
+                                    <span class="mockup-tab">💼 Experience</span>
+                                    <span class="mockup-tab">🛠️ Skills</span>
                                 </div>
-                            </div>
-                            <div class="mockup-cv-body">
-                                <div class="mockup-cv-section">
-                                    <div class="mockup-cv-sec-title">Skills</div>
-                                    <div class="mockup-cv-skills">
-                                        <span>React</span>
-                                        <span>Python</span>
-                                        <span>FastAPI</span>
-                                        <span class="cv-tag-new">Docker</span>
+
+                                <div class="mockup-input-group">
+                                    <label class="mockup-label">Job Title</label>
+                                    <div class="mockup-input-field">
+                                        <span class="mockup-typing-text">Senior Software Engineer</span>
+                                        <span class="mockup-cursor"></span>
                                     </div>
                                 </div>
-                                <div class="mockup-cv-section">
-                                    <div class="mockup-cv-sec-title">Experience</div>
-                                    <div class="mockup-cv-exp-title">Senior Software Engineer at Google</div>
-                                    <div class="mockup-cv-exp-desc">Led frontend performance and architecture scaling.</div>
+
+                                <div class="mockup-input-group">
+                                    <div class="mockup-label-flex">
+                                        <label class="mockup-label">Target Skills</label>
+                                        <span class="mockup-badge-sm">6 Added</span>
+                                    </div>
+                                    <div class="mockup-tags-container">
+                                        <span class="mockup-tag">Python</span>
+                                        <span class="mockup-tag">FastAPI</span>
+                                        <span class="mockup-tag">React</span>
+                                        <span class="mockup-tag">Docker</span>
+                                        <span class="mockup-tag tag-highlight">Kubernetes ✨</span>
+                                    </div>
+                                </div>
+
+                                <div class="mockup-tool-card">
+                                    <div class="tool-card-icon">⚡</div>
+                                    <div class="tool-card-info">
+                                        <div class="tool-card-title">1-Page Auto Budgeting</div>
+                                        <div class="tool-card-sub">Content fitted to 100% page height</div>
+                                    </div>
+                                    <span class="badge-check">Active</span>
+                                </div>
+                            </div>
+
+                            <!-- Right: Rendered Resume Sheet (John Doe) -->
+                            <div class="mockup-panel mockup-cv-panel">
+                                <div class="mockup-paper-sheet">
+                                    <!-- Header -->
+                                    <div class="mockup-paper-header">
+                                        <div class="mockup-paper-header-left">
+                                            <h2 class="mockup-paper-name">John Doe</h2>
+                                            <div class="mockup-paper-role">Staff Software Engineer</div>
+                                            <div class="mockup-paper-contacts">
+                                                <span>✉ john.doe@example.com</span>
+                                                <span>📍 San Francisco, CA</span>
+                                                <span>🔗 LinkedIn</span>
+                                                <span>🔗 GitHub</span>
+                                            </div>
+                                        </div>
+                                        <div class="mockup-paper-avatar">
+                                            <div class="avatar-initials">JD</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Divider -->
+                                    <div class="mockup-paper-divider"></div>
+
+                                    <!-- Experience Section -->
+                                    <div class="mockup-paper-section">
+                                        <div class="mockup-paper-sec-title">Work Experience</div>
+                                        <div class="mockup-paper-item">
+                                            <div class="mockup-paper-item-header">
+                                                <span class="item-role">Senior Staff Engineer — Stripe</span>
+                                                <span class="item-date">2022 – Present</span>
+                                            </div>
+                                            <div class="mockup-paper-bullet">• Architected distributed payment orchestration pipelines processing $12B+ annually.</div>
+                                            <div class="mockup-paper-bullet">• Reduced checkout p99 API latency by 45% using event-driven streaming caches.</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Skills Section -->
+                                    <div class="mockup-paper-section">
+                                        <div class="mockup-paper-sec-title">Core Competencies</div>
+                                        <div class="mockup-paper-skill-row">
+                                            <span class="cv-pill">Distributed Systems</span>
+                                            <span class="cv-pill">Python</span>
+                                            <span class="cv-pill">FastAPI</span>
+                                            <span class="cv-pill">React</span>
+                                            <span class="cv-pill">Go</span>
+                                            <span class="cv-pill">Kubernetes</span>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -154,56 +269,102 @@
         </div>
     </section>
 
+    <!-- ===== LOGO CLOUD / SOCIAL PROOF ===== -->
+    <section class="social-proof-section">
+        <div class="container">
+            <p class="social-proof-title">TRUSTED BY CANDIDATES HIRED AT WORLD-CLASS COMPANIES</p>
+            <div class="logo-cloud-grid">
+                <div class="company-badge"><span>Google</span></div>
+                <div class="company-badge"><span>Meta</span></div>
+                <div class="company-badge"><span>Microsoft</span></div>
+                <div class="company-badge"><span>Amazon</span></div>
+                <div class="company-badge"><span>Apple</span></div>
+                <div class="company-badge"><span>Stripe</span></div>
+                <div class="company-badge"><span>Netflix</span></div>
+            </div>
+        </div>
+    </section>
+
     <!-- ===== FEATURES ===== -->
     <section class="section features" id="features">
         <div class="container">
             <div class="section-header">
-                <span class="section-tag">Features</span>
-                <h2 class="section-title">Everything You Need to <span class="text-gradient">Land Your Dream Job</span></h2>
-                <p class="section-description">Our builder is packed with powerful features designed to help you create the perfect resume.</p>
+                <span class="section-tag">Powerful Architecture</span>
+                <h2 class="section-title">Built For Results. <span class="text-gradient">Engineered to Win.</span></h2>
+                <p class="section-description">Every component is meticulously designed to optimize your resume for automated applicant tracking systems and executive hiring managers.</p>
             </div>
+
             <div class="features-grid">
+                <!-- Feature 1 -->
                 <div class="feature-card" data-animate>
-                    <div class="feature-icon" style="background: rgba(99, 102, 241, 0.1); color: var(--color-accent); font-size: 24px; display: flex; align-items: center; justify-content: center;">
-                        🎯
+                    <div class="feature-icon-box bg-purple-soft">
+                        <span class="feat-emoji">🎯</span>
                     </div>
+                    <div class="feature-pill-badge">Recruiter Tested</div>
                     <h3 class="feature-title">Live ATS Keyword Matcher</h3>
-                    <p class="feature-description">Paste any target job description to calculate your match percentage in real-time. Uncover missing keywords and optimize before applying.</p>
+                    <p class="feature-description">
+                        Paste any job description to compute a live keyword compatibility score. Uncover missing terms, semantic gaps, and optimize your bullets before you hit submit.
+                    </p>
                 </div>
+
+                <!-- Feature 2 -->
                 <div class="feature-card" data-animate>
-                    <div class="feature-icon" style="background: rgba(16, 185, 129, 0.1); color: var(--color-success); font-size: 24px; display: flex; align-items: center; justify-content: center;">
-                        ⚡
+                    <div class="feature-icon-box bg-emerald-soft">
+                        <span class="feat-emoji">⚡</span>
                     </div>
-                    <h3 class="feature-title">3 Pre-filled Starters</h3>
-                    <p class="feature-description">Never face an intimidating blank canvas. One-click load complete, realistic sample resumes tailored for Engineering, Product, and Graduates.</p>
+                    <div class="feature-pill-badge">Zero Friction</div>
+                    <h3 class="feature-title">Instant AI PDF Importer</h3>
+                    <p class="feature-description">
+                        Upload your existing PDF resume. Our neural extraction engine automatically parses your contact details, experiences, and education into structured fields in seconds.
+                    </p>
                 </div>
+
+                <!-- Feature 3 -->
                 <div class="feature-card" data-animate>
-                    <div class="feature-icon" style="background: rgba(245, 158, 11, 0.1); color: var(--color-warning); font-size: 24px; display: flex; align-items: center; justify-content: center;">
-                        📦
+                    <div class="feature-icon-box bg-blue-soft">
+                        <span class="feat-emoji">📏</span>
                     </div>
-                    <h3 class="feature-title">Standard JSON Resume Export</h3>
-                    <p class="feature-description">Full bi-directional support for the open JSON Resume schema. Backup locally, switch devices easily, and keep 100% control of your data.</p>
+                    <div class="feature-pill-badge">Layout Budgeting</div>
+                    <h3 class="feature-title">Dynamic 1-Page Fitting</h3>
+                    <p class="feature-description">
+                        Eliminate awkward half-empty second pages. The intelligent budgeting engine balances font scales, spacing, and bullet points to guarantee an immaculate 1-page presentation.
+                    </p>
                 </div>
+
+                <!-- Feature 4 -->
                 <div class="feature-card" data-animate>
-                    <div class="feature-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    <div class="feature-icon-box bg-amber-soft">
+                        <span class="feat-emoji">🎨</span>
                     </div>
-                    <h3 class="feature-title">Live Real-time Preview</h3>
-                    <p class="feature-description">See your resume dynamically render on every keystroke. What you see is rendered identically down to the pixel in your PDF download.</p>
+                    <div class="feature-pill-badge">8 Templates</div>
+                    <h3 class="feature-title">Executive-Grade Themes</h3>
+                    <p class="feature-description">
+                        Switch between Harvard ATS, Executive Elegance, Modern Tech, and Contemporary templates in a single click. Every template strictly complies with ATS parsing rules.
+                    </p>
                 </div>
+
+                <!-- Feature 5 -->
                 <div class="feature-card" data-animate>
-                    <div class="feature-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                    <div class="feature-icon-box bg-cyan-soft">
+                        <span class="feat-emoji">📦</span>
                     </div>
-                    <h3 class="feature-title">Instant Pixel-Perfect PDF</h3>
-                    <p class="feature-description">Download your resume as an ultra sharp PDF with embedded fonts, automated page budgeting, and printer-ready margins.</p>
+                    <div class="feature-pill-badge">Zero Lock-in</div>
+                    <h3 class="feature-title">Standard JSON Resume</h3>
+                    <p class="feature-description">
+                        Full bi-directional import and export with the open JSON Resume schema. Keep 100% sovereignty over your career data—backup locally and switch whenever you want.
+                    </p>
                 </div>
+
+                <!-- Feature 6 -->
                 <div class="feature-card" data-animate>
-                    <div class="feature-icon">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                    <div class="feature-icon-box bg-rose-soft">
+                        <span class="feat-emoji">🔒</span>
                     </div>
-                    <h3 class="feature-title">Continuous Auto-Save</h3>
-                    <p class="feature-description">Never lose your edits. Your resume is automatically saved to your browser state with image compression and multi-profile support.</p>
+                    <div class="feature-pill-badge">Private & Secure</div>
+                    <h3 class="feature-title">Local-First Storage</h3>
+                    <p class="feature-description">
+                        Your private career details belong to you. We store resumes locally in your browser with continuous auto-save, multi-role variant management, and zero paywalls.
+                    </p>
                 </div>
             </div>
         </div>
@@ -213,146 +374,238 @@
     <section class="section how-it-works" id="how-it-works">
         <div class="container">
             <div class="section-header">
-                <span class="section-tag">How It Works</span>
-                <h2 class="section-title">Three Simple Steps to Your <span class="text-gradient">Perfect Resume</span></h2>
+                <span class="section-tag">Step-by-Step Flow</span>
+                <h2 class="section-title">Three Intuitive Steps to Your <span class="text-gradient">Standout CV</span></h2>
+                <p class="section-description">A streamlined workflow designed to save you hours of wrestling with word processors.</p>
             </div>
+
             <div class="steps-grid">
                 <div class="step-card" data-animate>
-                    <div class="step-number">01</div>
+                    <div class="step-badge-number">01</div>
+                    <div class="step-icon-circle">📝</div>
                     <div class="step-content">
-                        <h3 class="step-title">Fill In Your Details</h3>
-                        <p class="step-description">Enter your personal info, work experience, education, skills, and more using our guided step wizard.</p>
+                        <h3 class="step-title">Enter Info or Import PDF</h3>
+                        <p class="step-description">Use our guided wizard to enter your career experience, or click "Auto-fill from PDF" to import an existing resume automatically.</p>
                     </div>
                 </div>
+
                 <div class="step-connector">
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
+
                 <div class="step-card" data-animate>
-                    <div class="step-number">02</div>
+                    <div class="step-badge-number">02</div>
+                    <div class="step-icon-circle">🎯</div>
                     <div class="step-content">
-                        <h3 class="step-title">Choose a Template</h3>
-                        <p class="step-description">Select from our collection of professional, ATS-optimized templates. Preview your resume in real-time.</p>
+                        <h3 class="step-title">Select Template & Match ATS</h3>
+                        <p class="step-description">Pick from 8 ATS-verified templates with live real-time preview. Paste your target job description to verify keyword compatibility.</p>
                     </div>
                 </div>
+
                 <div class="step-connector">
                     <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="9 18 15 12 9 6"/></svg>
                 </div>
+
                 <div class="step-card" data-animate>
-                    <div class="step-number">03</div>
+                    <div class="step-badge-number">03</div>
+                    <div class="step-icon-circle">🚀</div>
                     <div class="step-content">
-                        <h3 class="step-title">Download Your PDF</h3>
-                        <p class="step-description">Download your polished resume as a high-quality PDF, ready to submit to any employer.</p>
+                        <h3 class="step-title">1-Click Pixel-Perfect PDF</h3>
+                        <p class="step-description">Download your completed resume in vector PDF format compiled with Playwright Chromium. Zero watermarks, zero fees, job-ready.</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- ===== TEMPLATES PREVIEW ===== -->
+    <!-- ===== WHY CHOOSE US (COMPARISON TABLE) ===== -->
+    <section class="section comparison-section" id="comparison">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Honest Comparison</span>
+                <h2 class="section-title">Why Candidates Choose <span class="text-gradient">ResumeBuilder</span></h2>
+                <p class="section-description">See how our open, developer-friendly platform compares to conventional subscription builders.</p>
+            </div>
+
+            <div class="comparison-table-wrapper">
+                <table class="comparison-table">
+                    <thead>
+                        <tr>
+                            <th>Feature</th>
+                            <th>Conventional Builders (Zety, Canva, etc.)</th>
+                            <th class="highlight-column">ResumeBuilder</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Pricing Model</strong></td>
+                            <td>$15 – $35 / month recurring fees</td>
+                            <td class="highlight-column"><span class="check-pill">100% Free Forever</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>PDF Download</strong></td>
+                            <td>Hidden paywall after 45 minutes of typing</td>
+                            <td class="highlight-column"><span class="check-pill">Instant & Free</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>ATS Compatibility</strong></td>
+                            <td>Multi-column tables that choke ATS screeners</td>
+                            <td class="highlight-column"><span class="check-pill">Verified ATS Layouts</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Data Portability</strong></td>
+                            <td>Proprietary lock-in, unable to export data</td>
+                            <td class="highlight-column"><span class="check-pill">Open JSON Resume Standard</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>AI PDF Extraction</strong></td>
+                            <td>Rare or requires premium upgrade</td>
+                            <td class="highlight-column"><span class="check-pill">Built-in Serverless AI</span></td>
+                        </tr>
+                        <tr>
+                            <td><strong>Privacy & Tracking</strong></td>
+                            <td>Data monetized and stored in third-party DBs</td>
+                            <td class="highlight-column"><span class="check-pill">Local-First Storage</span></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== TEMPLATES PREVIEW (QUICK-START STARTERS) ===== -->
     <section class="section templates-section" id="templates">
         <div class="container">
             <div class="section-header">
-                <span class="section-tag">Quick-Start Starters</span>
+                <span class="section-tag">Quick-Start Profiles</span>
                 <h2 class="section-title">Pre-filled Resumes Ready in <span class="text-gradient">One Click</span></h2>
-                <p class="section-description">Skip the blank canvas. Choose a realistic, professionally tailored starter profile to launch straight into the builder.</p>
+                <p class="section-description">Skip the blank canvas. Choose a realistic starter profile tailored for your domain to launch directly into the builder.</p>
             </div>
-            <div class="template-showcase" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(310px, 1fr)); gap: 24px; max-width: 1120px; margin: 0 auto;">
-                
+
+            <div class="template-showcase">
                 <!-- Sample 1: Senior Full-Stack Engineer -->
-                <div class="template-preview-card visible" style="background: var(--bg-surface); border-radius: var(--radius-xl); border: 1px solid var(--color-gray-200); overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-md); max-width: 100%;">
-                    <div style="padding: 20px; border-bottom: 1px solid var(--color-gray-100); background: linear-gradient(135deg, rgba(99, 102, 241, 0.06), rgba(168, 85, 247, 0.06));">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <span class="badge badge-primary" style="font-size: 11px;">Engineering</span>
-                            <span style="font-size: 11px; font-weight: 600; color: var(--color-accent);">6+ Yrs Exp</span>
+                <div class="starter-card">
+                    <div class="starter-card-top starter-gradient-indigo">
+                        <div class="starter-meta">
+                            <span class="badge badge-primary">Engineering</span>
+                            <span class="starter-exp">6+ Yrs Exp</span>
                         </div>
-                        <h3 style="font-size: 18px; font-weight: 700; margin: 0 0 4px 0; color: var(--text-primary);">Senior Full-Stack Engineer</h3>
-                        <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Alex Vance · San Francisco, CA</div>
+                        <h3 class="starter-title">Senior Full-Stack Engineer</h3>
+                        <div class="starter-author">Alex Vance · San Francisco, CA</div>
                     </div>
-                    <div style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
-                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
-                            High-throughput cloud systems, event-driven pipelines handling 15M+ daily requests, CI/CD automation, and full-stack leadership.
+                    <div class="starter-card-body">
+                        <p class="starter-desc">
+                            High-throughput cloud systems, event-driven pipelines handling 15M+ daily requests, CI/CD automation, and technical architecture leadership.
                         </p>
-                        <div style="margin-bottom: 16px;">
-                            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">Key Stack:</div>
-                            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">TypeScript</span>
-                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">React</span>
-                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Python</span>
-                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">FastAPI</span>
-                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Docker / AWS</span>
+                        <div class="starter-tags-group">
+                            <span class="tag-label">Key Stack:</span>
+                            <div class="tags-flex">
+                                <span class="starter-tag">TypeScript</span>
+                                <span class="starter-tag">React</span>
+                                <span class="starter-tag">Python</span>
+                                <span class="starter-tag">FastAPI</span>
+                                <span class="starter-tag">AWS</span>
                             </div>
                         </div>
-                        <button class="btn btn-primary btn-launch-sample" data-sample-id="sample_fullstack" style="width: 100%; justify-content: center; font-size: 13px; padding: 10px 16px;">
-                            Use This Profile 🚀
+                        <button class="btn btn-primary btn-launch-sample" data-sample-id="sample_fullstack">
+                            <span>Use This Profile 🚀</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Sample 2: Technical Product Manager -->
-                <div class="template-preview-card visible" style="background: var(--bg-surface); border-radius: var(--radius-xl); border: 1px solid var(--color-gray-200); overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-md); max-width: 100%;">
-                    <div style="padding: 20px; border-bottom: 1px solid var(--color-gray-100); background: linear-gradient(135deg, rgba(16, 185, 129, 0.06), rgba(59, 130, 246, 0.06));">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <span class="badge badge-success" style="font-size: 11px; background: #dcfce7; color: #15803d;">Product & Tech</span>
-                            <span style="font-size: 11px; font-weight: 600; color: #15803d;">5+ Yrs Exp</span>
+                <div class="starter-card">
+                    <div class="starter-card-top starter-gradient-emerald">
+                        <div class="starter-meta">
+                            <span class="badge badge-success">Product & Tech</span>
+                            <span class="starter-exp">5+ Yrs Exp</span>
                         </div>
-                        <h3 style="font-size: 18px; font-weight: 700; margin: 0 0 4px 0; color: var(--text-primary);">Technical Product Manager</h3>
-                        <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">Sarah Kim · New York, NY</div>
+                        <h3 class="starter-title">Technical Product Manager</h3>
+                        <div class="starter-author">Sarah Kim · New York, NY</div>
                     </div>
-                    <div style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
-                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
-                            Scaled enterprise B2B SaaS from 0 to $12M ARR, led squads of 14 engineers and designers, customer discovery, and data analytics.
+                    <div class="starter-card-body">
+                        <p class="starter-desc">
+                            Scaled enterprise B2B SaaS from 0 to $12M ARR, led squads of 14 engineers and designers, customer discovery, roadmap prioritization, and data analytics.
                         </p>
-                        <div style="margin-bottom: 16px;">
-                            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">Key Competencies:</div>
-                            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Product Strategy</span>
-                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">A/B Testing</span>
-                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">SQL</span>
-                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Agile / Scrum</span>
-                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Mixpanel</span>
+                        <div class="starter-tags-group">
+                            <span class="tag-label">Competencies:</span>
+                            <div class="tags-flex">
+                                <span class="starter-tag">Product Strategy</span>
+                                <span class="starter-tag">A/B Testing</span>
+                                <span class="starter-tag">SQL</span>
+                                <span class="starter-tag">Agile</span>
+                                <span class="starter-tag">Mixpanel</span>
                             </div>
                         </div>
-                        <button class="btn btn-primary btn-launch-sample" data-sample-id="sample_product_manager" style="width: 100%; justify-content: center; font-size: 13px; padding: 10px 16px;">
-                            Use This Profile 🚀
+                        <button class="btn btn-primary btn-launch-sample" data-sample-id="sample_product_manager">
+                            <span>Use This Profile 🚀</span>
                         </button>
                     </div>
                 </div>
 
                 <!-- Sample 3: Computer Science Graduate -->
-                <div class="template-preview-card visible" style="background: var(--bg-surface); border-radius: var(--radius-xl); border: 1px solid var(--color-gray-200); overflow: hidden; display: flex; flex-direction: column; box-shadow: var(--shadow-md); max-width: 100%;">
-                    <div style="padding: 20px; border-bottom: 1px solid var(--color-gray-100); background: linear-gradient(135deg, rgba(245, 158, 11, 0.06), rgba(239, 68, 68, 0.06));">
-                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-                            <span class="badge badge-success" style="font-size: 11px; background: #fef3c7; color: #b45309;">Entry Level</span>
-                            <span style="font-size: 11px; font-weight: 600; color: #b45309;">Class of 2024</span>
+                <div class="starter-card">
+                    <div class="starter-card-top starter-gradient-amber">
+                        <div class="starter-meta">
+                            <span class="badge badge-warning">Entry Level</span>
+                            <span class="starter-exp">Class of 2024</span>
                         </div>
-                        <h3 style="font-size: 18px; font-weight: 700; margin: 0 0 4px 0; color: var(--text-primary);">Computer Science Graduate</h3>
-                        <div style="font-size: 13px; font-weight: 600; color: var(--text-secondary);">David Chen · Seattle, WA</div>
+                        <h3 class="starter-title">Computer Science Graduate</h3>
+                        <div class="starter-author">David Chen · Seattle, WA</div>
                     </div>
-                    <div style="padding: 20px; flex: 1; display: flex; flex-direction: column; justify-content: space-between;">
-                        <p style="font-size: 13px; color: var(--text-secondary); line-height: 1.5; margin-bottom: 14px;">
-                            Dean's List honors, full-stack capstone projects, collegiate hackathon 1st place winner, and software engineering internship experience.
+                    <div class="starter-card-body">
+                        <p class="starter-desc">
+                            Dean's List honors, full-stack capstone projects, collegiate hackathon 1st place winner, and distributed systems software engineering internship experience.
                         </p>
-                        <div style="margin-bottom: 16px;">
-                            <div style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-secondary); margin-bottom: 6px;">Foundational Skills:</div>
-                            <div style="display: flex; flex-wrap: wrap; gap: 6px;">
-                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Python</span>
-                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Java</span>
-                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Algorithms</span>
-                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">React</span>
-                                <span style="font-size: 11px; padding: 2px 8px; border-radius: 12px; background: #f1f5f9; color: #334155; font-weight: 500;">Git / Linux</span>
+                        <div class="starter-tags-group">
+                            <span class="tag-label">Foundations:</span>
+                            <div class="tags-flex">
+                                <span class="starter-tag">Python</span>
+                                <span class="starter-tag">Java</span>
+                                <span class="starter-tag">Algorithms</span>
+                                <span class="starter-tag">React</span>
+                                <span class="starter-tag">Git / Linux</span>
                             </div>
                         </div>
-                        <button class="btn btn-primary btn-launch-sample" data-sample-id="sample_cs_grad" style="width: 100%; justify-content: center; font-size: 13px; padding: 10px 16px;">
-                            Use This Profile 🚀
+                        <button class="btn btn-primary btn-launch-sample" data-sample-id="sample_cs_grad">
+                            <span>Use This Profile 🚀</span>
                         </button>
                     </div>
                 </div>
-
             </div>
         </div>
     </section>
 
-    <!-- ===== CTA ===== -->
+    <!-- ===== FAQ SECTION ===== -->
+    <section class="section faq-section" id="faq">
+        <div class="container">
+            <div class="section-header">
+                <span class="section-tag">Got Questions?</span>
+                <h2 class="section-title">Frequently Asked <span class="text-gradient">Questions</span></h2>
+            </div>
+
+            <div class="faq-accordion-grid">
+                <div class="faq-item">
+                    <h3 class="faq-question">Is ResumeBuilder really 100% free?</h3>
+                    <p class="faq-answer">Yes, completely. There are no paywalls, no trial expirations, no subscriptions, and no hidden watermarks stamped on your downloaded PDF.</p>
+                </div>
+                <div class="faq-item">
+                    <h3 class="faq-question">Will my PDF pass Applicant Tracking Systems (ATS)?</h3>
+                    <p class="faq-answer">Yes. All 8 templates use clean single-column or ATS-approved layouts with standard headings, semantic hierarchy, and selectable vector fonts that parse cleanly.</p>
+                </div>
+                <div class="faq-item">
+                    <h3 class="faq-question">How does the Live ATS Keyword Matcher work?</h3>
+                    <p class="faq-answer">Paste the text of any job posting you are targeting. Our engine tokenizes the keywords, cross-references them against your resume content, and calculates your match percentage.</p>
+                </div>
+                <div class="faq-item">
+                    <h3 class="faq-question">Is my resume data kept private?</h3>
+                    <p class="faq-answer">Yes. Your data is stored locally in your browser's private local storage. We do not sell, track, or commercialize your personal information.</p>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== CTA SECTION ===== -->
     <section class="section cta-section">
         <div class="container">
             <div class="cta-card">
@@ -361,26 +614,93 @@
                     <div class="cta-orb cta-orb-2"></div>
                 </div>
                 <div class="cta-content">
-                    <h2 class="cta-title">Ready to Build Your Resume?</h2>
-                    <p class="cta-description">Start creating your professional resume now. It's free, fast, and easy.</p>
-                    <a href="#" class="btn btn-primary btn-lg" id="cta-bottom-btn">
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
-                        Get Started Free
-                    </a>
+                    <div class="cta-badge">Ready to Level Up Your Career?</div>
+                    <h2 class="cta-title">Create a High-Impact Resume Today</h2>
+                    <p class="cta-description">Join thousands of ambitious engineers, product leaders, and creators using ResumeBuilder to land interviews.</p>
+                    <div class="cta-buttons">
+                        <a href="#" class="btn btn-primary btn-lg" id="cta-bottom-btn">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 5v14M5 12h14"/></svg>
+                            <span>Get Started Free</span>
+                        </a>
+                        <a href="#templates" class="btn btn-secondary btn-lg">
+                            <span>Browse Starters</span>
+                        </a>
+                    </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- ===== FOOTER ===== -->
+    <!-- ===== RICH MODERN FOOTER ===== -->
     <footer class="footer">
-        <div class="container footer-content">
-            <div class="footer-brand">
-                <span class="logo-icon">📄</span>
-                <span class="logo-text">ResumeBuilder<span class="logo-dot">.</span></span>
+        <div class="container">
+            <div class="footer-top-grid">
+                <!-- Column 1: Brand & Tagline -->
+                <div class="footer-col footer-col-brand">
+                    <div class="footer-brand">
+                        <span class="footer-logo-icon">📄</span>
+                        <span class="footer-logo-text">ResumeBuilder<span class="logo-dot">.</span></span>
+                    </div>
+                    <p class="footer-tagline">
+                        The open-source, ATS-optimized resume platform built for modern high-growth professionals. Fast, free, and privacy-respecting.
+                    </p>
+                    <div class="footer-status-pill">
+                        <span class="footer-pulse-dot"></span>
+                        <span>All Systems Operational · v2.2</span>
+                    </div>
+                </div>
+
+                <!-- Column 2: Product -->
+                <div class="footer-col">
+                    <h4 class="footer-col-title">Product</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="/builder">Resume Studio</a></li>
+                        <li><a href="#features">ATS Keyword Scanner</a></li>
+                        <li><a href="#templates">Quick-Start Profiles</a></li>
+                        <li><a href="/builder">1-Page Budgeting</a></li>
+                        <li><a href="/builder">JSON Resume Portability</a></li>
+                    </ul>
+                </div>
+
+                <!-- Column 3: Templates -->
+                <div class="footer-col">
+                    <h4 class="footer-col-title">Templates</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="/builder">Harvard ATS Standard</a></li>
+                        <li><a href="/builder">Executive Elegance</a></li>
+                        <li><a href="/builder">Modern Tech</a></li>
+                        <li><a href="/builder">Contemporary Slate</a></li>
+                        <li><a href="/builder">Minimalist Precision</a></li>
+                        <li><a href="/builder">Creative Compact</a></li>
+                    </ul>
+                </div>
+
+                <!-- Column 4: Resources & Open Source -->
+                <div class="footer-col">
+                    <h4 class="footer-col-title">Open Source</h4>
+                    <ul class="footer-links-list">
+                        <li><a href="https://github.com/Bixal99/Resume-Builder" target="_blank" rel="noopener noreferrer">GitHub Repository</a></li>
+                        <li><a href="https://huggingface.co/spaces/Bixale55/ResuMate" target="_blank" rel="noopener noreferrer">Hugging Face Space</a></li>
+                        <li><a href="#faq">ATS Optimization FAQ</a></li>
+                        <li><a href="/docs">API Documentation</a></li>
+                        <li><a href="/builder">MIT License</a></li>
+                    </ul>
+                </div>
             </div>
-            <p class="footer-text">Build beautiful resumes, land your dream job.</p>
-            <p class="footer-copyright">&copy; 2026 ResumeBuilder. All rights reserved.</p>
+
+            <!-- Footer Bottom Bar -->
+            <div class="footer-bottom-bar">
+                <div class="footer-copyright-text">
+                    &copy; 2026 <strong>ResumeBuilder</strong>. Handcrafted with passion by <strong>Mohammad Bilal</strong>.
+                </div>
+                <div class="footer-bottom-links">
+                    <span>100% Client-Side Privacy</span>
+                    <span class="footer-bullet">•</span>
+                    <span>No Trackers</span>
+                    <span class="footer-bullet">•</span>
+                    <span>MIT License</span>
+                </div>
+            </div>
         </div>
     </footer>
 
@@ -408,10 +728,10 @@
     </div>
 
     <!-- Scripts -->
-    <script src="/static/js/utils/helpers.js?v=2.1.0"></script>
-    <script src="/static/js/data/sample-resumes.js?v=2.1.0"></script>
-    <script src="/static/js/store.js?v=2.1.0"></script>
-    <script src="/static/js/components/profiles-modal.js?v=2.1.0"></script>
-    <script src="/static/js/landing.js?v=2.1.0"></script>
+    <script src="/static/js/utils/helpers.js?v=2.2.0"></script>
+    <script src="/static/js/data/sample-resumes.js?v=2.2.0"></script>
+    <script src="/static/js/store.js?v=2.2.0"></script>
+    <script src="/static/js/components/profiles-modal.js?v=2.2.0"></script>
+    <script src="/static/js/landing.js?v=2.2.0"></script>
 </body>
 </html>

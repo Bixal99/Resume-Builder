@@ -142,7 +142,7 @@ const ResumeStore = (() => {
                 const defaultProfileId = generateId('prof');
                 profiles = [{
                     id: defaultProfileId,
-                    name: legacyData ? 'Hasan Ahmad' : 'My Resume',
+                    name: legacyData ? 'John Doe' : 'My Resume',
                     updated_at: new Date().toISOString()
                 }];
                 localStorage.setItem(PROFILES_KEY, JSON.stringify(profiles));
