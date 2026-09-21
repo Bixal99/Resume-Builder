@@ -11,7 +11,7 @@ All routes are prefixed with /api/ and return JSON responses
 from fastapi import APIRouter, Depends, HTTPException, Response, UploadFile, File
 from fastapi.responses import HTMLResponse, StreamingResponse
 
-from app.api.deps import get_pdf_service, get_resume_service, get_template_service
+from app.api.deps import get_docx_service, get_pdf_service, get_resume_service, get_template_service
 from app.schemas.resume import (
     ResumeCreate,
     ResumeData,
@@ -21,6 +21,7 @@ from app.schemas.resume import (
 )
 from typing import Optional
 from pydantic import BaseModel
+from app.services.docx_service import DOCXService
 from app.services.pdf_service import PDFService
 from app.services.resume_service import ResumeService
 from app.services.template_service import TemplateService
@@ -178,6 +179,46 @@ async def download_pdf(
         headers={
             "Content-Disposition": f'attachment; filename="{filename}"',
             "Content-Length": str(len(pdf_bytes)),
+        },
+    )
+
+
+# =============================================================================
+# DOCX (Word Document) Download
+# =============================================================================
+
+@router.post("/download/docx")
+async def download_docx(
+    data: ResumeData,
+    docx_svc: DOCXService = Depends(get_docx_service),
+):
+    """
+    Generate and download an editable Microsoft Word (.docx) resume.
+    """
+    try:
+        docx_bytes = await asyncio.to_thread(docx_svc.generate_docx, data)
+    except Exception as e:
+        logger.exception("DOCX generation error in /download/docx")
+        raise HTTPException(
+            status_code=500,
+            detail=f"DOCX generation failed: {str(e)}"
+        )
+
+    if not docx_bytes or len(docx_bytes) == 0:
+        logger.error("DOCX generation produced zero bytes")
+        raise HTTPException(status_code=500, detail="DOCX generation returned empty output")
+
+    name_parts = [data.first_name, data.last_name]
+    raw_name = "_".join(p.strip() for p in name_parts if p and p.strip()) or "resume"
+    safe_name = re.sub(r'[^a-zA-Z0-9_\-]', '_', raw_name)
+    filename = f"{safe_name}_resume.docx"
+
+    return StreamingResponse(
+        io.BytesIO(docx_bytes),
+        media_type="application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+        headers={
+            "Content-Disposition": f'attachment; filename="{filename}"',
+            "Content-Length": str(len(docx_bytes)),
         },
     )
 

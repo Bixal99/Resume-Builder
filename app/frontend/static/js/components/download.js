@@ -60,8 +60,13 @@ const DownloadComponent = (() => {
             }
         });
 
-        // Download PDF
+        // Download Button (Opens Format Options Modal: PDF, DOCX, or Both)
         container.querySelector('#download-btn').addEventListener('click', async () => {
+            if (typeof window.openDownloadModal === 'function') {
+                window.openDownloadModal();
+                return;
+            }
+
             const btn = container.querySelector('#download-btn');
             const status = container.querySelector('#download-status');
             btn.disabled = true;
@@ -76,7 +81,9 @@ const DownloadComponent = (() => {
                 const name = `${data.first_name || 'resume'}_${data.last_name || ''}_resume.pdf`.replace(/\s+/g, '_');
                 a.href = url;
                 a.download = name;
+                document.body.appendChild(a);
                 a.click();
+                document.body.removeChild(a);
                 URL.revokeObjectURL(url);
                 status.innerHTML = '<span style="color: var(--color-success);">✅ PDF downloaded successfully!</span>';
                 showToast('PDF downloaded!', 'success');
@@ -86,7 +93,7 @@ const DownloadComponent = (() => {
                 showToast('PDF download failed', 'error');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download PDF';
+                btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download PDF / DOCX';
             }
         });
     }

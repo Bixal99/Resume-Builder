@@ -436,27 +436,165 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
-    // --- Header Download Button ---
-    document.getElementById('btn-download-pdf')?.addEventListener('click', async () => {
-        const btn = document.getElementById('btn-download-pdf');
-        btn.disabled = true;
-        btn.innerHTML = '⏳ Generating...';
-        try {
-            const data = ResumeStore.getResumeData();
-            const blob = await API.downloadPDF(data);
+    // --- Download Modal Handler (PDF, DOCX, or Both) ---
+    const downloadModal = document.getElementById('download-modal-overlay');
+    const btnCloseDownloadModal = document.getElementById('download-modal-close');
+    const btnModalDlPdf = document.getElementById('btn-modal-dl-pdf');
+    const btnModalDlDocx = document.getElementById('btn-modal-dl-docx');
+    const btnModalDlBoth = document.getElementById('btn-modal-dl-both');
+    const modalDownloadStatus = document.getElementById('modal-download-status');
+
+    function openDownloadModal() {
+        if (downloadModal) {
+            downloadModal.classList.add('active');
+            if (modalDownloadStatus) modalDownloadStatus.textContent = '';
+        }
+    }
+
+    function closeDownloadModal() {
+        if (downloadModal) {
+            downloadModal.classList.remove('active');
+        }
+    }
+
+    window.openDownloadModal = openDownloadModal;
+    window.closeDownloadModal = closeDownloadModal;
+
+    if (downloadModal) {
+        btnCloseDownloadModal?.addEventListener('click', closeDownloadModal);
+        downloadModal.addEventListener('click', (e) => {
+            if (e.target === downloadModal) closeDownloadModal();
+        });
+        document.addEventListener('keydown', (e) => {
+            if (e.key === 'Escape' && downloadModal.classList.contains('active')) {
+                closeDownloadModal();
+            }
+        });
+
+        // Helper to trigger file download from Blob
+        function triggerBlobDownload(blob, filename) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `${data.first_name || 'resume'}_resume.pdf`;
+            a.download = filename;
+            document.body.appendChild(a);
             a.click();
-            URL.revokeObjectURL(url);
-            showToast('PDF downloaded!', 'success');
-        } catch (e) {
-            showToast('PDF generation failed. ' + (e.message || ''), 'error');
-        } finally {
-            btn.disabled = false;
-            btn.innerHTML = '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download PDF';
+            document.body.removeChild(a);
+            setTimeout(() => URL.revokeObjectURL(url), 1000);
         }
+
+        function getFileBaseName(data) {
+            const first = (data.first_name || 'resume').trim().replace(/\s+/g, '_');
+            const last = (data.last_name || '').trim().replace(/\s+/g, '_');
+            return last ? `${first}_${last}_resume` : `${first}_resume`;
+        }
+
+        // Action 1: Download PDF
+        const executeDownloadPdf = async () => {
+            if (btnModalDlPdf.disabled) return;
+            const originalHtml = btnModalDlPdf.innerHTML;
+            btnModalDlPdf.disabled = true;
+            btnModalDlPdf.innerHTML = '⏳ Generating...';
+            if (modalDownloadStatus) modalDownloadStatus.innerHTML = '<span style="color: #4f46e5;">Generating high-res vector PDF...</span>';
+
+            try {
+                const data = ResumeStore.getResumeData();
+                const blob = await API.downloadPDF(data);
+                const filename = `${getFileBaseName(data)}.pdf`;
+                triggerBlobDownload(blob, filename);
+
+                if (modalDownloadStatus) modalDownloadStatus.innerHTML = '<span style="color: #10b981;">✅ PDF downloaded successfully!</span>';
+                if (typeof showToast === 'function') showToast('PDF downloaded successfully!', 'success');
+                setTimeout(closeDownloadModal, 1200);
+            } catch (e) {
+                console.error('PDF download error:', e);
+                if (modalDownloadStatus) modalDownloadStatus.innerHTML = `<span style="color: #ef4444;">❌ ${e.message || 'PDF generation failed.'}</span>`;
+                if (typeof showToast === 'function') showToast('PDF generation failed: ' + (e.message || ''), 'error');
+            } finally {
+                btnModalDlPdf.disabled = false;
+                btnModalDlPdf.innerHTML = originalHtml;
+            }
+        };
+
+        // Action 2: Download DOCX
+        const executeDownloadDocx = async () => {
+            if (btnModalDlDocx.disabled) return;
+            const originalHtml = btnModalDlDocx.innerHTML;
+            btnModalDlDocx.disabled = true;
+            btnModalDlDocx.innerHTML = '⏳ Generating...';
+            if (modalDownloadStatus) modalDownloadStatus.innerHTML = '<span style="color: #2563eb;">Generating ATS Word document...</span>';
+
+            try {
+                const data = ResumeStore.getResumeData();
+                const blob = await API.downloadDOCX(data);
+                const filename = `${getFileBaseName(data)}.docx`;
+                triggerBlobDownload(blob, filename);
+
+                if (modalDownloadStatus) modalDownloadStatus.innerHTML = '<span style="color: #10b981;">✅ Word DOCX downloaded successfully!</span>';
+                if (typeof showToast === 'function') showToast('Word file (.docx) downloaded successfully!', 'success');
+                setTimeout(closeDownloadModal, 1200);
+            } catch (e) {
+                console.error('DOCX download error:', e);
+                if (modalDownloadStatus) modalDownloadStatus.innerHTML = `<span style="color: #ef4444;">❌ ${e.message || 'Word export failed.'}</span>`;
+                if (typeof showToast === 'function') showToast('DOCX export failed: ' + (e.message || ''), 'error');
+            } finally {
+                btnModalDlDocx.disabled = false;
+                btnModalDlDocx.innerHTML = originalHtml;
+            }
+        };
+
+        // Action 3: Download Both Formats
+        const executeDownloadBoth = async () => {
+            if (btnModalDlBoth.disabled) return;
+            const originalHtml = btnModalDlBoth.innerHTML;
+            btnModalDlBoth.disabled = true;
+            btnModalDlBoth.innerHTML = '⏳ Generating Both...';
+            if (modalDownloadStatus) modalDownloadStatus.innerHTML = '<span style="color: #4f46e5;">Generating both PDF and Word files...</span>';
+
+            try {
+                const data = ResumeStore.getResumeData();
+                const base = getFileBaseName(data);
+
+                const [pdfBlob, docxBlob] = await Promise.all([
+                    API.downloadPDF(data),
+                    API.downloadDOCX(data)
+                ]);
+
+                // Download PDF
+                triggerBlobDownload(pdfBlob, `${base}.pdf`);
+
+                // Download DOCX shortly after to ensure browser handles both smoothly
+                setTimeout(() => {
+                    triggerBlobDownload(docxBlob, `${base}.docx`);
+                }, 400);
+
+                if (modalDownloadStatus) modalDownloadStatus.innerHTML = '<span style="color: #10b981;">✅ Both PDF &amp; DOCX files downloaded!</span>';
+                if (typeof showToast === 'function') showToast('Downloaded both PDF and Word files!', 'success');
+                setTimeout(closeDownloadModal, 1400);
+            } catch (e) {
+                console.error('Dual export error:', e);
+                if (modalDownloadStatus) modalDownloadStatus.innerHTML = `<span style="color: #ef4444;">❌ ${e.message || 'Export failed.'}</span>`;
+                if (typeof showToast === 'function') showToast('Export failed: ' + (e.message || ''), 'error');
+            } finally {
+                btnModalDlBoth.disabled = false;
+                btnModalDlBoth.innerHTML = originalHtml;
+            }
+        };
+
+        btnModalDlPdf?.addEventListener('click', (e) => { e.stopPropagation(); executeDownloadPdf(); });
+        btnModalDlDocx?.addEventListener('click', (e) => { e.stopPropagation(); executeDownloadDocx(); });
+        btnModalDlBoth?.addEventListener('click', (e) => { e.stopPropagation(); executeDownloadBoth(); });
+
+        // Also allow clicking anywhere on the respective card
+        document.getElementById('format-card-pdf')?.addEventListener('click', () => executeDownloadPdf());
+        document.getElementById('format-card-docx')?.addEventListener('click', () => executeDownloadDocx());
+        document.getElementById('format-card-both')?.addEventListener('click', () => executeDownloadBoth());
+    }
+
+    // --- Header Download Button (Opens Modal) ---
+    document.getElementById('btn-download-pdf')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        openDownloadModal();
     });
 
     // --- Preview Toggle (Mobile) ---

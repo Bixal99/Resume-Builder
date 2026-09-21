@@ -42,3 +42,11 @@ def get_pdf_service():
     """Provide the singleton PDFService instance."""
     return pdf_service
 
+
+from app.services.docx_service import get_docx_service as _get_docx_service
+
+
+def get_docx_service():
+    """Provide the singleton DOCXService instance."""
+    return _get_docx_service()
+

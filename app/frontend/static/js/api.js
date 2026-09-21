@@ -50,6 +50,20 @@ const API = (() => {
             return res.blob();
         },
 
+        // DOCX (Word Document)
+        downloadDOCX: async (data) => {
+            const res = await fetch(`${BASE}/download/docx`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data),
+            });
+            if (!res.ok) {
+                const err = await res.json().catch(() => ({ detail: res.statusText }));
+                throw new Error(err.detail || 'Word document generation failed');
+            }
+            return res.blob();
+        },
+
         // Parse Resume from PDF (Standard)
         parseResume: async (file) => {
             const formData = new FormData();
