@@ -12,10 +12,10 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
     <!-- Styles -->
-    <link rel="stylesheet" href="/static/css/variables.css?v=2.1.0">
-    <link rel="stylesheet" href="/static/css/base.css?v=2.1.0">
-    <link rel="stylesheet" href="/static/css/components.css?v=2.1.0">
-    <link rel="stylesheet" href="/static/css/builder.css?v=2.1.0">
+    <link rel="stylesheet" href="/static/css/variables.css?v=3.2.0">
+    <link rel="stylesheet" href="/static/css/base.css?v=3.2.0">
+    <link rel="stylesheet" href="/static/css/components.css?v=3.2.0">
+    <link rel="stylesheet" href="/static/css/builder.css?v=3.2.0">
 </head>
 <body class="builder-body">
     <!-- ===== BUILDER HEADER ===== -->
@@ -62,9 +62,9 @@
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
                 Preview
             </button>
-            <button class="btn btn-primary btn-sm" id="btn-download-pdf">
+            <button class="btn btn-primary btn-sm" id="btn-download-pdf" onclick="if(window.openDownloadModal) window.openDownloadModal();" title="Export &amp; Download CV">
                 <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                Download PDF
+                Download CV
             </button>
         </div>
     </header>
@@ -234,7 +234,7 @@
                         📥
                     </div>
                     <div>
-                        <h3 style="margin:0; font-size: 18px; font-weight: 750; color: #0f172a;">Export &amp; Download Resume</h3>
+                        <h3 style="margin:0; font-size: 18px; font-weight: 750; color: #0f172a;">Export &amp; Download CV</h3>
                         <p style="margin:0; font-size: 12.5px; color: #64748b;">Choose your format for ATS submissions or editable archives</p>
                     </div>
                 </div>
@@ -309,28 +309,28 @@
 
     <!-- Scripts — loaded in dependency order -->
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
-    <script src="/static/js/utils/helpers.js?v=2.1.0"></script>
-    <script src="/static/js/utils/validation.js?v=2.1.0"></script>
-    <script src="/static/js/utils/drag-drop.js?v=2.1.0"></script>
-    <script src="/static/js/data/sample-resumes.js?v=2.1.0"></script>
-    <script src="/static/js/utils/json-resume.js?v=2.1.0"></script>
-    <script src="/static/js/utils/ats-scanner.js?v=2.1.0"></script>
-    <script src="/static/js/store.js?v=2.1.0"></script>
-    <script src="/static/js/api.js?v=2.3.0"></script>
-    <script src="/static/js/preview.js?v=2.3.6"></script>
-    <script src="/static/js/components/stepper.js?v=2.3.6"></script>
-    <script src="/static/js/components/personal-info.js?v=2.1.0"></script>
-    <script src="/static/js/components/summary.js?v=2.1.0"></script>
-    <script src="/static/js/components/experience.js?v=2.1.0"></script>
-    <script src="/static/js/components/education.js?v=2.1.0"></script>
-    <script src="/static/js/components/projects.js?v=2.1.0"></script>
-    <script src="/static/js/components/skills.js?v=2.1.0"></script>
-    <script src="/static/js/components/additional.js?v=2.3.3"></script>
-    <script src="/static/js/components/arrange.js?v=2.1.0"></script>
-    <script src="/static/js/components/template-selector.js?v=2.1.0"></script>
-    <script src="/static/js/components/review.js?v=2.1.0"></script>
-    <script src="/static/js/components/download.js?v=2.1.0"></script>
-    <script src="/static/js/components/profiles-modal.js?v=2.1.0"></script>
-    <script src="/static/js/app.js?v=2.3.6"></script>
+    <script src="/static/js/utils/helpers.js?v=3.2.0"></script>
+    <script src="/static/js/utils/validation.js?v=3.2.0"></script>
+    <script src="/static/js/utils/drag-drop.js?v=3.2.0"></script>
+    <script src="/static/js/data/sample-resumes.js?v=3.2.0"></script>
+    <script src="/static/js/utils/json-resume.js?v=3.2.0"></script>
+    <script src="/static/js/utils/ats-scanner.js?v=3.2.0"></script>
+    <script src="/static/js/store.js?v=3.2.0"></script>
+    <script src="/static/js/api.js?v=3.2.0"></script>
+    <script src="/static/js/preview.js?v=3.2.0"></script>
+    <script src="/static/js/components/stepper.js?v=3.2.0"></script>
+    <script src="/static/js/components/personal-info.js?v=3.2.0"></script>
+    <script src="/static/js/components/summary.js?v=3.2.0"></script>
+    <script src="/static/js/components/experience.js?v=3.2.0"></script>
+    <script src="/static/js/components/education.js?v=3.2.0"></script>
+    <script src="/static/js/components/projects.js?v=3.2.0"></script>
+    <script src="/static/js/components/skills.js?v=3.2.0"></script>
+    <script src="/static/js/components/additional.js?v=3.2.0"></script>
+    <script src="/static/js/components/arrange.js?v=3.2.0"></script>
+    <script src="/static/js/components/template-selector.js?v=3.2.0"></script>
+    <script src="/static/js/components/review.js?v=3.2.0"></script>
+    <script src="/static/js/components/download.js?v=3.2.0"></script>
+    <script src="/static/js/components/profiles-modal.js?v=3.2.0"></script>
+    <script src="/static/js/app.js?v=3.2.0"></script>
 </body>
 </html>
