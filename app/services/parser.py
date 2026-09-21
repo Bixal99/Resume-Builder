@@ -49,10 +49,16 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
                     continue
                 rect = link.get("from")
                 anchor_text = page.get_textbox(rect).strip() if rect else ""
-                # Also get surrounding line context
+                if not anchor_text and rect:
+                    anchor_text = page.get_textbox(fitz.Rect(rect.x0 - 2, rect.y0 - 2, rect.x1 + 2, rect.y1 + 2)).strip()
+                # Expand context horizontally across the page to capture project title, labels, and dates on the same line
                 context = ""
                 if rect:
-                    ctx_rect = fitz.Rect(max(0, rect.x0 - 40), max(0, rect.y0 - 3), rect.x1 + 80, rect.y1 + 3)
+                    line_x0 = max(0, rect.x0 - 350)
+                    line_x1 = min(page.rect.width, rect.x1 + 350)
+                    line_y0 = max(0, rect.y0 - 6)
+                    line_y1 = rect.y1 + 6
+                    ctx_rect = fitz.Rect(line_x0, line_y0, line_x1, line_y1)
                     context = page.get_textbox(ctx_rect).strip().replace("\n", " ")
                 
                 embedded_links.append({
@@ -68,11 +74,12 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
         # If any embedded hyperlinks were detected, append them explicitly so the AI sees real URLs
         if embedded_links:
             text += "\n\n--- EMBEDDED HYPERLINKS IN RESUME ---\n"
-            seen_uris = set()
+            seen_items = set()
             for item in embedded_links:
-                if item["uri"] in seen_uris:
+                key = (item["uri"], item["anchor"], item["context"])
+                if key in seen_items:
                     continue
-                seen_uris.add(item["uri"])
+                seen_items.add(key)
                 anchor = item["anchor"] or "Link"
                 ctx = f" (Context: '{item['context']}')" if item["context"] and item["context"] != anchor else ""
                 text += f"- Anchor: '{anchor}'{ctx} -> Target URL: {item['uri']}\n"
@@ -212,8 +219,8 @@ def extract_profile_photo_from_pdf(file_bytes: bytes) -> Optional[str]:
 
 def _get_system_and_user_prompts(text: str):
     words = text.split()
-    if len(words) > 1500:
-        text = " ".join(words[:1500])
+    if len(words) > 10000:
+        text = " ".join(words[:10000])
 
     minimal_schema = {
         "photo": None, "first_name": "", "last_name": "", "professional_title": "", "email": "", "phone": "",
@@ -228,10 +235,11 @@ def _get_system_and_user_prompts(text: str):
         "volunteer": [{"organization": "", "role": "", "location": "", "start_date": "", "end_date": "", "is_current": False, "description": ""}]
     }
     
-    system_prompt = f"""You are an elite, highly intelligent Resume Parsing AI. 
+    schema_json = json.dumps(minimal_schema, indent=2)
+    system_prompt = """You are an elite, highly intelligent Resume Parsing AI. 
 Your job is to extract information from the user's raw resume text and output ONLY a valid JSON object.
 The JSON object MUST strictly adhere to the following JSON structure (omit empty fields):
-{json.dumps(minimal_schema, indent=2)}
+__SCHEMA__
 
 CRITICAL PARSING RULES:
 1. ZERO ALTERATION: Extract exact wording. DO NOT summarize or shorten text.
@@ -252,12 +260,13 @@ CRITICAL PARSING RULES:
    Assign each skill to one of these standard categories:
    - "Technical Skills" (Programming languages, databases, computer vision, algorithms, etc.)
    - "Frameworks & Libraries" (React, Next.js, Django, FastAPI, PyTorch, NumPy, Pandas, etc.)
-   - "Tools" (Git, GitHub, Docker, VS Code, Linux, Postman, Figma, Cloud platforms, etc.)
+   - "Tools & Platforms" (Git, GitHub, Docker, VS Code, Linux, Postman, Figma, Cloud platforms, Wireshark, Google Colab, etc.)
    - "Soft Skills" (Communication, Leadership, Problem Solving, Teamwork, etc.)
    Or use the explicit category header from the resume text.
    For EVERY skill:
-   - 'name': specific skill name (e.g. "Python", "Next.js", "Docker", "Git").
-   - 'category': its category ("Technical Skills", "Frameworks & Libraries", "Tools", or "Soft Skills").
+   - 'name': specific skill name (e.g. "Python", "Next.js", "Docker", "Git", "GitLab CI/CD").
+   - 'category': its category ("Technical Skills", "Frameworks & Libraries", "Tools & Platforms", or "Soft Skills").
+   CRITICAL: Extract 100% of all skills listed across all categories without truncating or stopping early. Capture all tools and platforms through the very end of the list (e.g. Wireshark, Google Colab, Replit, GitLab CI/CD).
 6. EDUCATION DEGREE & FIELD OF STUDY (CRITICAL):
    Strictly separate the degree qualification/level from the academic field of study!
    - 'degree': ONLY the degree qualification/title (e.g. "Bachelor of Science", "Bachelor of Arts", "Bachelor of Engineering", "Bachelor of Technology", "Master of Science", "Master of Business Administration", "Doctor of Philosophy", "Associate of Science", "High School Diploma").
@@ -271,18 +280,34 @@ CRITICAL PARSING RULES:
    "degree": "Master of Science", "field_of_study": "Data Science".
 7. LINKS & URLS (CRITICAL):
    - Extract real destination URLs for 'linkedin', 'github', 'portfolio', 'website', 'github_url', and 'live_url'.
-   - Check both the resume text AND the '--- EMBEDDED HYPERLINKS IN RESUME ---' section at the bottom of the document. If an anchor word like "LinkedIn", "GitHub", or "Live" is listed with a target URL, use that target URL!
-   - NEVER, UNDER ANY CIRCUMSTANCES, output generic label words like "LinkedIn", "GitHub", "Portfolio", "Website", "Live", "Demo", or "Link" as the URL value! A URL must be an actual web destination (e.g. "https://linkedin.com/in/username", "github.com/username", "https://myportfolio.dev").
+   - Check both the resume text AND the '--- EMBEDDED HYPERLINKS IN RESUME ---' section at the bottom of the document.
+   - PROJECT LINKS (CRITICAL): In the Projects section, project titles often have anchor links right next to them, such as 'GitHub' and 'Live' (e.g. 'AI Book Assistant GitHub Live June 2026'). You MUST match each project to its corresponding embedded URLs:
+     * Put the GitHub repository or code link into that project's 'github_url' field!
+     * Put the live website, deployment, or demo link into that project's 'live_url' field!
+     * Look at the Context in '--- EMBEDDED HYPERLINKS IN RESUME ---' to match the link to the exact project title!
+     * NEVER leave 'github_url' empty when a GitHub link exists for the project!
+   - NEVER, UNDER ANY CIRCUMSTANCES, output generic label words like "LinkedIn", "GitHub", "Portfolio", "Website", "Live", "Demo", or "Link" as the URL value! A URL must be an actual web destination (e.g. "https://linkedin.com/in/username", "https://github.com/username/repo", "https://myportfolio.dev").
    - If no valid URL or handle exists for a field, set it to empty string "". NEVER output dummy text!
 8. EDUCATION GRADE:
    Extract GPA, grades, or academic standing (e.g. "2.85/4.0", "3.8 GPA") into the 'grade' field of education.
-9. CERTIFICATIONS & CERTIFICATES:
+9. CERTIFICATIONS & CERTIFICATES (CRITICAL):
    Extract ALL certifications, certificates, licenses, credentials, and courses from sections titled "Certifications", "Certificates", "Licenses & Certifications", "Courses", etc. into the "certifications" array.
-   - 'name': Exact certification name or title (e.g. "AWS Certified Solutions Architect", "Meta Front-End Developer", or whatever title is listed).
+   - 'name': Exact certification name or title (e.g. "bbb", "ssc", "AWS Certified Solutions Architect").
    - 'issuer': Issuing organization or platform (e.g. "Amazon Web Services", "Coursera", "Google", or empty string).
-   - 'date': Date or year (or empty string).
+   - 'date': Date or month/year (e.g. "9 sept", "Sept 2023", "2024", or empty string).
    - 'expiry_date': Expiration date (or empty string).
-   CRITICAL: If a resume has a "CERTIFICATIONS" or "CERTIFICATES" section, even with brief, single-word or short entries, ALWAYS extract every entry into 'certifications' with 'name'. NEVER ignore or drop them!
+   CRITICAL DATES RULE:
+   - NEVER output a date, month, or day-month (e.g. "9 sept", "sept", "September", "2024") as a certification 'name'!
+   - When a certification entry is followed by or aligned with a date (e.g. "bbb  9 sept" or "bbb" on one line and "9 sept" on the next), "bbb" is the 'name' and "9 sept" is the 'date'.
+   - Example:
+     bbb    9 sept
+     ssc    9 sept
+     Output MUST be:
+     [
+       {"name": "bbb", "issuer": "", "date": "9 sept", "expiry_date": ""},
+       {"name": "ssc", "issuer": "", "date": "9 sept", "expiry_date": ""}
+     ]
+   - ALWAYS extract every single certification. NEVER drop them!
 10. AWARDS & ACHIEVEMENTS:
    Extract ALL awards, achievements, honors, competition wins, hackathons, and recognitions from sections titled "Achievements", "Key Achievements", "Awards", "Honors & Awards", "Accomplishments", "Awards & Achievements", etc. into the "awards" array.
    - 'title': Achievement or award title.
@@ -290,12 +315,23 @@ CRITICAL PARSING RULES:
    - 'date': Date or year, or empty string.
    - 'description': Full achievement details or bullet description.
    CRITICAL: Standalone "Achievements" sections MUST be extracted into 'awards'. NEVER omit achievements!
-11. LANGUAGES:
-   Extract all languages into the "languages" array:
+11. LANGUAGES (CRITICAL):
+   Extract ALL spoken languages into the "languages" array:
    - 'name': Language name (e.g. "English", "Urdu", "Arabic").
-   - 'fluency': Proficiency level (e.g. "Native", "Fluent", "Intermediate", "Beginner", or empty string).
+   - 'fluency': Proficiency level (e.g. "Fluent", "Native", "Beginner", "Intermediate", "Conversational", or empty string).
+   CRITICAL HORIZONTAL / MULTI-LANGUAGE RULE:
+   - When languages are listed horizontally, side-by-side, or on a single line (e.g. "English (Fluent)  Urdu (Fluent)  Arabic (Beginner)"), you MUST extract EACH language as a separate object in the array!
+   - Example:
+     Input: "English (Fluent)   Urdu (Fluent)   Arabic (Beginner)"
+     Output:
+     [
+       {"name": "English", "fluency": "Fluent"},
+       {"name": "Urdu", "fluency": "Fluent"},
+       {"name": "Arabic", "fluency": "Beginner"}
+     ]
+   - NEVER omit or drop any language from the resume!
 12. Output raw JSON only. Do not wrap in markdown or explanation.
-"""
+""".replace("__SCHEMA__", schema_json)
     user_prompt = f"Here is the resume text:\n\n{text}"
     return system_prompt, user_prompt
 
@@ -353,16 +389,17 @@ def build_skill_category_map(raw_text: str):
     Scans the raw resume text for explicit skills section headers and subcategories.
     E.g.
     Technical Skills: Python, SQL, ...
-    Framworks & Libraries: Next.js, React.js, ...
-    Tools: Git, Docker, ...
+    Frameworks & Libraries: Next.js, React.js, ...
+    Tools & Platforms: Git, Docker, ...
     
     Returns:
-      (skill_to_cat_dict, list_of_detected_categories)
+      (skill_to_cat_dict, list_of_detected_categories, raw_skills_dict)
     """
     if not raw_text:
-        return {}, []
+        return {}, [], {}
     skill_to_cat = {}
     cat_headers = []
+    raw_skills = {}
     
     # Locate skills section
     sec_content = extract_section_raw(raw_text, r'TECHNICAL\s+SKILLS|TECHNICAL\s+PROFICIENCIES|CORE\s+COMPETENCIES|SKILLS') or raw_text
@@ -372,6 +409,15 @@ def build_skill_category_map(raw_text: str):
         line_s = line.strip()
         if not line_s:
             continue
+        # Stop parsing if another major section header is hit
+        clean_header_candidate = line_s.rstrip(":").strip()
+        if any(re.match(rf'^{h}$', clean_header_candidate, re.IGNORECASE) for h in [
+            r'CERTIFICATIONS', r'CERTIFICATES', r'LICENSES(?:\s*&\s*CERTIFICATIONS)?', r'COURSES',
+            r'LANGUAGES', r'LANGUAGE\s+PROFICIENCY', r'SPOKEN\s+LANGUAGES', r'EDUCATION', r'EXPERIENCE', r'PROJECTS', r'AWARDS', r'VOLUNTEER'
+        ]):
+            current_cat = None
+            break
+
         # Check for sub-header lines like "Category Name:" or "Category Name: skill1, skill2..."
         m = re.match(r'^([A-Za-z0-9\s&/\-_]+):\s*(.*)$', line_s)
         if m:
@@ -383,17 +429,19 @@ def build_skill_category_map(raw_text: str):
                     cat_headers.append(current_cat)
                 rest = m.group(2).strip()
                 if rest:
-                    for s in rest.split(','):
+                    for s in re.split(r'[,|•·\t]|\s{2,}', rest):
                         s_clean = s.strip()
-                        if s_clean:
+                        if s_clean and len(s_clean) > 1 and not re.match(r'^\d+$', s_clean):
                             skill_to_cat[s_clean.lower()] = current_cat
+                            raw_skills[s_clean.lower()] = (s_clean, current_cat)
         elif current_cat:
-            for s in line_s.split(','):
+            for s in re.split(r'[,|•·\t]|\s{2,}', line_s):
                 s_clean = s.strip()
-                if s_clean:
+                if s_clean and len(s_clean) > 1 and not re.match(r'^\d+$', s_clean):
                     skill_to_cat[s_clean.lower()] = current_cat
+                    raw_skills[s_clean.lower()] = (s_clean, current_cat)
                     
-    return skill_to_cat, cat_headers
+    return skill_to_cat, cat_headers, raw_skills
 
 
 def normalize_degree_name(d: str) -> str:
@@ -608,9 +656,38 @@ def parse_raw_experience(raw_text: str) -> list[dict]:
 
 
 
+MONTH_NAMES_PATTERN = r'(?:jan(?:uary)?|feb(?:ruary)?|mar(?:ch)?|apr(?:il)?|may|jun(?:e)?|jul(?:y)?|aug(?:ust)?|sep(?:t|tember)?|oct(?:ober)?|nov(?:ember)?|dec(?:ember)?)'
+
+DATE_TOKEN_RE = re.compile(
+    rf'^(?:'
+    rf'\d{{1,2}}\s+{MONTH_NAMES_PATTERN}(?:\s+\d{{2,4}})?'
+    rf'|{MONTH_NAMES_PATTERN}\s+\d{{1,2}}(?:st|nd|rd|th)?(?:\s*,?\s*\d{{2,4}})?'
+    rf'|{MONTH_NAMES_PATTERN}(?:\s+\d{{2,4}})?'
+    rf'|\d{{1,2}}[\/\.-]\d{{1,2}}[\/\.-]\d{{2,4}}'
+    rf'|\d{{1,2}}[\/\.-]\d{{2,4}}'
+    rf'|(?:19|20)\d{{2}}'
+    rf'|present|ongoing'
+    rf')$',
+    re.IGNORECASE
+)
+
+TRAILING_DATE_RE = re.compile(
+    rf'(?:[\s\(\[\-–—|,]+)('
+    rf'\d{{1,2}}\s+{MONTH_NAMES_PATTERN}(?:\s+\d{{2,4}})?'
+    rf'|{MONTH_NAMES_PATTERN}\s+\d{{1,2}}(?:st|nd|rd|th)?(?:\s*,?\s*\d{{2,4}})?'
+    rf'|{MONTH_NAMES_PATTERN}(?:\s+\d{{2,4}})?'
+    rf'|\d{{1,2}}[\/\.-]\d{{1,2}}[\/\.-]\d{{2,4}}'
+    rf'|\d{{1,2}}[\/\.-]\d{{2,4}}'
+    rf'|(?:19|20)\d{{2}}'
+    rf')[\)\]]?$',
+    re.IGNORECASE
+)
+
+
 def parse_raw_certifications(raw_text: str) -> list[dict]:
     """
     Parses certifications directly from document raw text when LLM omits or drops them.
+    Robustly handles dates on separate lines (e.g. "bbb \n 9 sept") or inline (e.g. "bbb  9 sept").
     """
     body = extract_section_raw(
         raw_text,
@@ -624,31 +701,44 @@ def parse_raw_certifications(raw_text: str) -> list[dict]:
         l_clean = re.sub(r'^[•\-\*·\d\.\)]\s*', '', line).strip()
         if not l_clean or l_clean.upper() in ('CERTIFICATIONS', 'CERTIFICATES', 'LICENSES', 'COURSES'):
             continue
-        # Pattern 1: Name - Issuer (Date) or Name | Issuer | Date
-        m_dash = re.match(r'^(.*?)\s*[-–—|]\s*(.*?)(?:\s*[\(\[]([^\)\]]+)[\)\]])?$', l_clean)
-        if m_dash and m_dash.group(1).strip() and m_dash.group(2).strip():
-            name = m_dash.group(1).strip()
-            issuer = m_dash.group(2).strip()
-            date = (m_dash.group(3) or '').strip()
-        else:
-            # Pattern 2: Name (Date)
-            m_date = re.search(r'\s*[\(\[]((?:19|20)\d{2}|[A-Za-z]{3,}\s+(?:19|20)\d{2})[\)\]]$', l_clean)
-            if m_date:
-                name = l_clean[:m_date.start()].strip()
-                issuer = ''
-                date = m_date.group(1).strip()
-            else:
-                name = l_clean
-                issuer = ''
-                date = ''
 
-        if name and name.lower() not in seen:
-            seen.add(name.lower())
+        # If this entire line is just a date token (e.g. "9 sept", "sept", "2024"):
+        if DATE_TOKEN_RE.match(l_clean):
+            if certs and not certs[-1].get("date"):
+                certs[-1]["date"] = l_clean
+            continue
+
+        c_name = l_clean
+        c_issuer = ""
+        c_date = ""
+
+        # Check for inline trailing date (e.g. "bbb   9 sept" or "bbb (9 sept)")
+        m_trailing = TRAILING_DATE_RE.search(c_name)
+        if m_trailing:
+            c_date = m_trailing.group(1).strip()
+            c_name = c_name[:m_trailing.start()].strip().rstrip("-–—|([{ ")
+
+        # Check for issuer separated by - or |
+        m_dash = re.match(r'^(.*?)\s*[-–—|]\s*(.*?)(?:\s*[\(\[]([^\)\]]+)[\)\]])?$', c_name)
+        if m_dash and m_dash.group(1).strip() and m_dash.group(2).strip():
+            c_name = m_dash.group(1).strip()
+            c_issuer = m_dash.group(2).strip()
+            if not c_date and m_dash.group(3):
+                c_date = m_dash.group(3).strip()
+
+        # Reject if c_name is empty or is purely a date token
+        if not c_name or DATE_TOKEN_RE.match(c_name):
+            if certs and not certs[-1].get("date") and c_name:
+                certs[-1]["date"] = c_name
+            continue
+
+        if c_name.lower() not in seen:
+            seen.add(c_name.lower())
             certs.append({
                 "id": f"cert_{uuid.uuid4().hex[:8]}",
-                "name": name,
-                "issuer": issuer,
-                "date": date,
+                "name": c_name,
+                "issuer": c_issuer,
+                "date": c_date,
                 "expiry_date": ""
             })
     return certs
@@ -670,29 +760,30 @@ def parse_raw_awards(raw_text: str) -> list[dict]:
         l_clean = re.sub(r'^[•\-\*·\d\.\)]\s*', '', line).strip()
         if not l_clean or l_clean.upper() in ('AWARDS', 'ACHIEVEMENTS', 'HONORS', 'KEY ACHIEVEMENTS', 'ACCOMPLISHMENTS'):
             continue
-        m_dash = re.match(r'^(.*?)\s*[-–—|]\s*(.*?)(?:\s*[\(\[]([^\)\]]+)[\)\]])?$', l_clean)
-        if m_dash and m_dash.group(1).strip() and m_dash.group(2).strip():
-            title = m_dash.group(1).strip()
-            issuer = m_dash.group(2).strip()
-            date = (m_dash.group(3) or '').strip()
-        else:
-            m_date = re.search(r'\s*[\(\[]((?:19|20)\d{2}|[A-Za-z]{3,}\s+(?:19|20)\d{2})[\)\]]$', l_clean)
-            if m_date:
-                title = l_clean[:m_date.start()].strip()
-                issuer = ""
-                date = m_date.group(1).strip()
-            else:
-                title = l_clean
-                issuer = ""
-                date = ""
 
-        if title and title.lower() not in seen:
-            seen.add(title.lower())
+        a_title = l_clean
+        a_issuer = ""
+        a_date = ""
+
+        m_trailing = TRAILING_DATE_RE.search(a_title)
+        if m_trailing:
+            a_date = m_trailing.group(1).strip()
+            a_title = a_title[:m_trailing.start()].strip().rstrip("-–—|([{ ")
+
+        m_dash = re.match(r'^(.*?)\s*[-–—|]\s*(.*?)(?:\s*[\(\[]([^\)\]]+)[\)\]])?$', a_title)
+        if m_dash and m_dash.group(1).strip() and m_dash.group(2).strip():
+            a_title = m_dash.group(1).strip()
+            a_issuer = m_dash.group(2).strip()
+            if not a_date and m_dash.group(3):
+                a_date = m_dash.group(3).strip()
+
+        if a_title and a_title.lower() not in seen:
+            seen.add(a_title.lower())
             awards.append({
                 "id": f"award_{uuid.uuid4().hex[:8]}",
-                "title": title,
-                "issuer": issuer,
-                "date": date,
+                "title": a_title,
+                "issuer": a_issuer,
+                "date": a_date,
                 "description": ""
             })
     return awards
@@ -701,6 +792,8 @@ def parse_raw_awards(raw_text: str) -> list[dict]:
 def parse_raw_languages(raw_text: str) -> list[dict]:
     """
     Parses spoken languages directly from document raw text.
+    Handles horizontal/side-by-side languages (e.g. "English (Fluent) Urdu (Fluent) Arabic (Beginner)")
+    as well as comma/tab-separated lists.
     Filters out technical programming languages (e.g. Python, SQL).
     """
     # Look for dedicated language section heading on its own line
@@ -713,20 +806,24 @@ def parse_raw_languages(raw_text: str) -> list[dict]:
     langs = []
     seen = set()
     parts = []
+
     for line in body.split('\n'):
         line_s = line.strip()
         if not line_s or line_s.upper() in ('LANGUAGES', 'LANGUAGE PROFICIENCY', 'SPOKEN LANGUAGES'):
             continue
-        if ',' in line_s and not re.search(r'\([^\)]*,[^\)]*\)', line_s):
-            parts.extend([p.strip() for p in line_s.split(',') if p.strip()])
-        else:
-            parts.append(line_s)
+        # Split line into parts by comma, pipe, tab, multiple spaces, or right after closing parenthesis followed by space and letter
+        # e.g. "English (Fluent)   Urdu (Fluent)   Arabic (Beginner)"
+        split_items = re.split(r'[,|•·\/\t]|\s{2,}|\s*(?<=\))\s+(?=[A-Za-z])', line_s)
+        for it in split_items:
+            it_clean = it.strip()
+            if it_clean:
+                parts.append(it_clean)
 
     for p in parts:
         p_clean = re.sub(r'^[•\-\*·\d\.\)]\s*', '', p).strip()
         if not p_clean:
             continue
-        m = re.match(r'^(.*?)\s*[\(\-–]\s*([^\)]+)[\)]?$', p_clean)
+        m = re.match(r'^(.*?)\s*[\(\-–:]\s*([^\)]+)[\)]?$', p_clean)
         if m and m.group(1).strip() and m.group(2).strip():
             name = m.group(1).strip()
             fluency = m.group(2).strip()
@@ -929,16 +1026,16 @@ def parse_resume_deterministic(text: str, photo: Optional[str] = None, detected_
     in <50ms without external API dependencies.
     """
     contact = extract_contact_info_deterministic(text)
-    skill_to_cat, cat_headers = build_skill_category_map(text)
+    skill_to_cat, cat_headers, raw_skills = build_skill_category_map(text)
     
     skills = []
     seen_skills = set()
-    for s_name, s_cat in skill_to_cat.items():
-        if s_name.lower() not in seen_skills:
-            seen_skills.add(s_name.lower())
+    for s_lower, (orig_name, s_cat) in raw_skills.items():
+        if s_lower not in seen_skills:
+            seen_skills.add(s_lower)
             skills.append({
                 "id": f"skill_{uuid.uuid4().hex[:8]}",
-                "name": s_name.title() if len(s_name) > 3 else s_name.upper(),
+                "name": orig_name,
                 "category": normalize_skill_category(s_cat),
                 "proficiency": 5
             })
@@ -986,8 +1083,9 @@ def post_process_json(parsed_json, raw_text: str = None):
         return parsed_json
         
     skill_to_cat = {}
+    raw_skills = {}
     if raw_text:
-        skill_to_cat, _ = build_skill_category_map(raw_text)
+        skill_to_cat, _, raw_skills = build_skill_category_map(raw_text)
 
     # Map alternative section names from LLM
     if "certificates" in parsed_json and "certifications" not in parsed_json:
@@ -1003,9 +1101,9 @@ def post_process_json(parsed_json, raw_text: str = None):
             parsed_json["awards"].extend(parsed_json.pop("achievements"))
 
     # 1. Properly categorize all skills, normalize categories, assign unique IDs, and deduplicate
+    seen_skills = set()
+    clean_skills = []
     if "skills" in parsed_json and isinstance(parsed_json["skills"], list):
-        seen_skills = set()
-        clean_skills = []
         for skill in parsed_json["skills"]:
             if isinstance(skill, dict):
                 s_name = str(skill.get("name", "")).strip()
@@ -1021,10 +1119,10 @@ def post_process_json(parsed_json, raw_text: str = None):
                     cat = str(cat).strip().rstrip(":")
                 
                 # If mapped from CV text, use the exact CV category header
-                if s_name.lower() in skill_to_cat:
-                    cat = skill_to_cat[s_name.lower()]
+                if s_key in skill_to_cat:
+                    cat = skill_to_cat[s_key]
                 elif not cat or cat.lower() in ("technical", "skills", "general"):
-                    cat = skill_to_cat.get(s_name.lower()) or cat or "Technical Skills"
+                    cat = skill_to_cat.get(s_key) or cat or "Technical Skills"
                 
                 cat = normalize_skill_category(cat)
                 skill["name"] = s_name
@@ -1032,6 +1130,20 @@ def post_process_json(parsed_json, raw_text: str = None):
                 if not skill.get("id"):
                     skill["id"] = f"skill_{uuid.uuid4().hex[:8]}"
                 clean_skills.append(skill)
+
+    # Merge any skills from raw_text that LLM missed (e.g. Wireshark, Google Colab, Replit, GitLab CI/CD)
+    if raw_skills:
+        for s_lower, (orig_name, s_cat) in raw_skills.items():
+            if s_lower not in seen_skills:
+                seen_skills.add(s_lower)
+                clean_skills.append({
+                    "id": f"skill_{uuid.uuid4().hex[:8]}",
+                    "name": orig_name,
+                    "category": normalize_skill_category(s_cat),
+                    "proficiency": 5
+                })
+
+    if clean_skills:
         parsed_json["skills"] = clean_skills
 
     # 2. Assign unique IDs to projects
@@ -1096,37 +1208,67 @@ def post_process_json(parsed_json, raw_text: str = None):
         else:
             parsed_json["experience"] = []
 
-    # 5. Clean & standardize CERTIFICATIONS (with raw_text fallback)
+    # 5. Clean & standardize CERTIFICATIONS (with date filtering & raw_text merge)
     certs = parsed_json.get("certifications")
     clean_certs = []
     seen_certs = set()
     if isinstance(certs, list) and len(certs) > 0:
         for c in certs:
+            c_obj = None
             if isinstance(c, str) and c.strip():
                 c_name = c.strip()
-                if c_name.lower() not in seen_certs:
-                    seen_certs.add(c_name.lower())
-                    clean_certs.append({
-                        "id": f"cert_{uuid.uuid4().hex[:8]}",
-                        "name": c_name,
-                        "issuer": "",
-                        "date": "",
-                        "expiry_date": ""
-                    })
+                c_obj = {
+                    "id": f"cert_{uuid.uuid4().hex[:8]}",
+                    "name": c_name,
+                    "issuer": "",
+                    "date": "",
+                    "expiry_date": ""
+                }
             elif isinstance(c, dict):
                 c_name = (c.get("name") or c.get("title") or c.get("certification") or "").strip()
-                if c_name and c_name.lower() not in seen_certs:
-                    seen_certs.add(c_name.lower())
+                if c_name:
                     c["name"] = c_name
                     if not c.get("id"):
                         c["id"] = f"cert_{uuid.uuid4().hex[:8]}"
-                    clean_certs.append(c)
+                    c_obj = c
 
-    # Fallback to document text if certifications is still empty
-    if not clean_certs and raw_text:
+            if not c_obj:
+                continue
+
+            c_name = c_obj.get("name", "").strip()
+
+            # If c_name is purely a date token (e.g. "9 sept", "sept", "2024"):
+            if DATE_TOKEN_RE.match(c_name):
+                # Attach to previous certificate's date if it lacks one
+                if clean_certs and not clean_certs[-1].get("date"):
+                    clean_certs[-1]["date"] = c_name
+                continue
+
+            # Check for trailing inline date
+            m_trailing = TRAILING_DATE_RE.search(c_name)
+            if m_trailing and not c_obj.get("date"):
+                c_obj["date"] = m_trailing.group(1).strip()
+                c_obj["name"] = c_name[:m_trailing.start()].strip().rstrip("-–—|([{ ")
+
+            if c_obj["name"] and c_obj["name"].lower() not in seen_certs and not DATE_TOKEN_RE.match(c_obj["name"]):
+                seen_certs.add(c_obj["name"].lower())
+                clean_certs.append(c_obj)
+
+    # Fallback / merge from raw_text
+    if raw_text:
         fallback_certs = parse_raw_certifications(raw_text)
-        if fallback_certs:
+        if not clean_certs:
             clean_certs = fallback_certs
+        else:
+            for fc in fallback_certs:
+                fc_key = fc["name"].lower()
+                existing = next((x for x in clean_certs if x["name"].lower() == fc_key), None)
+                if existing:
+                    if not existing.get("date") and fc.get("date"):
+                        existing["date"] = fc["date"]
+                elif fc_key not in seen_certs and not DATE_TOKEN_RE.match(fc["name"]):
+                    seen_certs.add(fc_key)
+                    clean_certs.append(fc)
 
     if clean_certs:
         parsed_json["certifications"] = clean_certs
@@ -1166,36 +1308,59 @@ def post_process_json(parsed_json, raw_text: str = None):
     if clean_awards:
         parsed_json["awards"] = clean_awards
 
-    # 7. Clean & standardize LANGUAGES (with raw_text fallback)
+    # 7. Clean & standardize LANGUAGES (with multi-language splitting & raw_text merge)
     langs = parsed_json.get("languages")
     clean_langs = []
     seen_langs = set()
     if isinstance(langs, list) and len(langs) > 0:
         for l in langs:
+            entries = []
             if isinstance(l, str) and l.strip():
-                m = re.match(r'^(.*?)\s*[\(\-–]\s*([^\)]+)[\)]?$', l.strip())
-                l_name = m.group(1).strip() if m else l.strip()
-                l_fluency = m.group(2).strip() if m else ""
-                if l_name.lower() not in seen_langs:
-                    seen_langs.add(l_name.lower())
-                    clean_langs.append({
-                        "id": f"lang_{uuid.uuid4().hex[:8]}",
-                        "name": l_name,
-                        "fluency": l_fluency
-                    })
+                sub_parts = re.split(r'[,|•·\/\t]|\s{2,}|\s*(?<=\))\s+(?=[A-Za-z])', l.strip())
+                for sp in sub_parts:
+                    sp_clean = sp.strip()
+                    if sp_clean:
+                        m = re.match(r'^(.*?)\s*[\(\-–:]\s*([^\)]+)[\)]?$', sp_clean)
+                        entries.append({
+                            "name": m.group(1).strip() if m else sp_clean,
+                            "fluency": m.group(2).strip() if m else ""
+                        })
             elif isinstance(l, dict):
                 l_name = (l.get("name") or l.get("language") or "").strip()
-                if l_name and l_name.lower() not in seen_langs:
-                    seen_langs.add(l_name.lower())
-                    l["name"] = l_name
-                    if not l.get("id"):
-                        l["id"] = f"lang_{uuid.uuid4().hex[:8]}"
-                    clean_langs.append(l)
+                l_fluency = (l.get("fluency") or l.get("proficiency") or "").strip()
+                if re.search(r'[\(\/|]|\s{2,}|\s*(?<=\))\s+(?=[A-Za-z])', l_name):
+                    sub_parts = re.split(r'[,|•·\/\t]|\s{2,}|\s*(?<=\))\s+(?=[A-Za-z])', l_name)
+                    for sp in sub_parts:
+                        sp_clean = sp.strip()
+                        if sp_clean:
+                            m = re.match(r'^(.*?)\s*[\(\-–:]\s*([^\)]+)[\)]?$', sp_clean)
+                            entries.append({
+                                "name": m.group(1).strip() if m else sp_clean,
+                                "fluency": (m.group(2).strip() if m else "") or l_fluency
+                            })
+                else:
+                    entries.append({"name": l_name, "fluency": l_fluency})
 
-    if not clean_langs and raw_text:
+            for entry in entries:
+                name = entry["name"].strip()
+                fluency = entry["fluency"].strip()
+                if not name or name.lower() in seen_langs:
+                    continue
+                seen_langs.add(name.lower())
+                clean_langs.append({
+                    "id": f"lang_{uuid.uuid4().hex[:8]}",
+                    "name": name,
+                    "fluency": fluency
+                })
+
+    # Merge any languages from raw_text that LLM missed (e.g. Urdu, Arabic)
+    if raw_text:
         fallback_langs = parse_raw_languages(raw_text)
-        if fallback_langs:
-            clean_langs = fallback_langs
+        for fl in fallback_langs:
+            fl_key = fl["name"].lower()
+            if fl_key not in seen_langs:
+                seen_langs.add(fl_key)
+                clean_langs.append(fl)
 
     if clean_langs:
         parsed_json["languages"] = clean_langs
@@ -1223,52 +1388,170 @@ def post_process_json(parsed_json, raw_text: str = None):
             if url:
                 embedded_links.append((anchor, ctx, url))
 
+    # Also detect explicit raw URLs in text if any were not in embedded_links
+    if raw_text:
+        for gh_m in re.finditer(r"(https?://(?:www\.)?github\.com/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)?)", raw_text, re.IGNORECASE):
+            raw_gh = gh_m.group(1).rstrip(",;.)")
+            if not any(u == raw_gh for _, _, u in embedded_links):
+                embedded_links.append(("github", "", raw_gh))
+
     def is_bad_url(u: str) -> bool:
         if not u:
             return True
-        u_clean = u.strip().lower()
+        u_clean = str(u).strip().lower()
         if u_clean in dummy_words:
             return True
         if "." not in u_clean and "/" not in u_clean and not u_clean.startswith("mailto:") and not u_clean.startswith("tel:"):
             return True
         return False
 
+    def get_gh_segments(u: str) -> list[str]:
+        if "github.com" not in u.lower():
+            return []
+        try:
+            from urllib.parse import urlparse
+            p = urlparse(u).path.strip("/")
+            return [seg for seg in p.split("/") if seg]
+        except Exception:
+            return []
+
+    # Identify project titles to avoid stealing project links for header contact info
+    proj_list = parsed_json.get("projects") if isinstance(parsed_json.get("projects"), list) else []
+    proj_titles = [str(p.get("title") or "").strip().lower() for p in proj_list if isinstance(p, dict)]
+
+    # Clean Contact URLs
     for field in ["linkedin", "github", "portfolio", "website"]:
         val = str(parsed_json.get(field, "") or "").strip()
-        if is_bad_url(val):
-            # Attempt to recover real URL from embedded links
-            recovered = ""
-            if field == "linkedin":
+        if field == "linkedin":
+            if is_bad_url(val):
                 recovered = next((u for a, c, u in embedded_links if "linkedin.com" in u.lower()), "")
-            elif field == "github":
-                recovered = next((u for a, c, u in embedded_links if "github.com" in u.lower() and u.count("/") <= 4), "")
-            elif field in ("portfolio", "website"):
-                recovered = next((u for a, c, u in embedded_links if field in a or field in c or ("linkedin.com" not in u.lower() and "github.com" not in u.lower() and not u.startswith("mailto:"))), "")
-            parsed_json[field] = recovered
+                if recovered:
+                    parsed_json["linkedin"] = recovered
+        elif field == "github":
+            if is_bad_url(val) or len(get_gh_segments(val)) > 1:
+                recovered = next((u for a, c, u in embedded_links if len(get_gh_segments(u)) == 1 and not any(pt and pt in c for pt in proj_titles)), "")
+                if not recovered:
+                    recovered = next((u for a, c, u in embedded_links if "github.com" in u.lower() and not any(pt and pt in c for pt in proj_titles)), "")
+                if not recovered:
+                    first_gh = next((u for a, c, u in embedded_links if "github.com" in u.lower()), "")
+                    if first_gh:
+                        segs = get_gh_segments(first_gh)
+                        if segs:
+                            recovered = f"https://github.com/{segs[0]}"
+                if recovered:
+                    parsed_json["github"] = recovered
+        elif field in ("portfolio", "website"):
+            if is_bad_url(val):
+                recovered = next((u for a, c, u in embedded_links if (field in a or field in c or ("linkedin.com" not in u.lower() and "github.com" not in u.lower() and not u.startswith("mailto:") and not u.startswith("tel:"))) and not any(pt and pt in c for pt in proj_titles)), "")
+                if recovered:
+                    parsed_json[field] = recovered
 
-    # Clean project URLs
-    if "projects" in parsed_json and isinstance(parsed_json["projects"], list):
-        for proj in parsed_json["projects"]:
+    # Clean Project URLs
+    if proj_list:
+        all_gh_links = [(a, c, u) for a, c, u in embedded_links if "github.com" in u.lower() or a in ("github", "repo", "code", "git", "source")]
+        all_live_links = [(a, c, u) for a, c, u in embedded_links if a in ("live", "demo", "app", "site", "preview", "link", "view", "url", "web") or ("github.com" not in u.lower() and "linkedin.com" not in u.lower() and not u.startswith("mailto:") and not u.startswith("tel:"))]
+
+        assigned_gh_urls = set()
+        assigned_live_urls = set()
+
+        # Step 1: Record existing valid URLs
+        for proj in proj_list:
             if isinstance(proj, dict):
-                p_title = (proj.get("title") or "").strip().lower()
-                for u_field in ["github_url", "live_url"]:
-                    u_val = str(proj.get(u_field, "") or "").strip()
-                    if is_bad_url(u_val):
-                        recovered = ""
-                        if u_field == "github_url":
-                            # Try matching github URL with project title or repo structure
-                            if p_title:
-                                p_words = [w for w in re.split(r'\W+', p_title) if len(w) > 3]
-                                recovered = next((u for a, c, u in embedded_links if "github.com" in u.lower() and any(w in u.lower() or w in c for w in p_words)), "")
-                            if not recovered:
-                                recovered = next((u for a, c, u in embedded_links if "github.com" in u.lower() and u.count("/") > 4), "")
-                        elif u_field == "live_url":
-                            if p_title:
-                                p_words = [w for w in re.split(r'\W+', p_title) if len(w) > 3]
-                                recovered = next((u for a, c, u in embedded_links if ("github.com" not in u.lower() and "linkedin.com" not in u.lower()) and any(w in u.lower() or w in c for w in p_words)), "")
-                            if not recovered:
-                                recovered = next((u for a, c, u in embedded_links if a in ("live", "demo") or ("github.com" not in u.lower() and "linkedin.com" not in u.lower() and not u.startswith("mailto:"))), "")
-                        proj[u_field] = recovered
+                cur_gh = str(proj.get("github_url") or "").strip()
+                if not is_bad_url(cur_gh):
+                    assigned_gh_urls.add(cur_gh)
+                cur_live = str(proj.get("live_url") or "").strip()
+                if not is_bad_url(cur_live):
+                    assigned_live_urls.add(cur_live)
+
+        # Step 2: Resolve project GitHub and Live URLs
+        for idx, proj in enumerate(proj_list):
+            if not isinstance(proj, dict):
+                continue
+            p_title = (proj.get("title") or "").strip().lower()
+            p_words = [w for w in re.split(r'\W+', p_title) if len(w) > 2 and w not in {"the", "and", "for", "with", "system", "systems", "suite", "app", "application", "project", "projects"}]
+            if not p_words:
+                p_words = [w for w in re.split(r'\W+', p_title) if len(w) > 1]
+
+            # --- Resolve github_url ---
+            cur_gh = str(proj.get("github_url") or "").strip()
+            needs_gh = is_bad_url(cur_gh) or (len(get_gh_segments(cur_gh)) == 1 and any(len(get_gh_segments(u)) >= 2 for _, _, u in all_gh_links))
+
+            if needs_gh and all_gh_links:
+                best_match = ""
+                best_score = -999
+                for a, c, u in all_gh_links:
+                    score = 0
+                    if p_title and p_title in c:
+                        score += 50
+                    if p_words:
+                        score += sum(15 for w in p_words if w in c)
+                        score += sum(15 for w in p_words if w in u.lower())
+                    if len(get_gh_segments(u)) >= 2:
+                        score += 10
+                    if a in ("github", "repo", "code", "git", "source"):
+                        score += 5
+                    if u in assigned_gh_urls:
+                        score -= 40
+                    if score > best_score:
+                        best_score = score
+                        best_match = u
+
+                if best_match and best_score > 0:
+                    proj["github_url"] = best_match
+                    assigned_gh_urls.add(best_match)
+                else:
+                    unassigned = [u for a, c, u in all_gh_links if u not in assigned_gh_urls]
+                    if unassigned:
+                        chosen = unassigned[0]
+                        proj["github_url"] = chosen
+                        assigned_gh_urls.add(chosen)
+                    elif idx < len(all_gh_links):
+                        proj["github_url"] = all_gh_links[idx][2]
+                    elif all_gh_links:
+                        proj["github_url"] = all_gh_links[min(idx, len(all_gh_links) - 1)][2]
+            elif is_bad_url(cur_gh):
+                proj["github_url"] = ""
+
+            # --- Resolve live_url ---
+            cur_live = str(proj.get("live_url") or "").strip()
+            needs_live = is_bad_url(cur_live)
+
+            if needs_live and all_live_links:
+                best_match = ""
+                best_score = -999
+                for a, c, u in all_live_links:
+                    score = 0
+                    if p_title and p_title in c:
+                        score += 50
+                    if p_words:
+                        score += sum(15 for w in p_words if w in c)
+                        score += sum(15 for w in p_words if w in u.lower())
+                    if a in ("live", "demo", "app", "site", "preview", "link", "view", "url", "web"):
+                        score += 10
+                    if "github.com" not in u.lower() and "linkedin.com" not in u.lower():
+                        score += 5
+                    if u in assigned_live_urls:
+                        score -= 40
+                    if score > best_score:
+                        best_score = score
+                        best_match = u
+
+                if best_match and best_score > 0:
+                    proj["live_url"] = best_match
+                    assigned_live_urls.add(best_match)
+                else:
+                    unassigned = [u for a, c, u in all_live_links if u not in assigned_live_urls]
+                    if unassigned:
+                        chosen = unassigned[0]
+                        proj["live_url"] = chosen
+                        assigned_live_urls.add(chosen)
+                    elif idx < len(all_live_links):
+                        proj["live_url"] = all_live_links[idx][2]
+                    elif all_live_links:
+                        proj["live_url"] = all_live_links[min(idx, len(all_live_links) - 1)][2]
+            elif is_bad_url(cur_live):
+                proj["live_url"] = ""
         
     return parsed_json
 
@@ -1341,7 +1624,7 @@ def stream_provider_chat(provider: dict, model_name: str, system_prompt: str, us
                 {"role": "user", "content": user_prompt}
             ],
             "temperature": 0.1,
-            "max_tokens": 3000,
+            "max_tokens": 6000,
             "response_format": {"type": "json_object"},
             "stream": True
         }
@@ -1373,7 +1656,7 @@ def stream_provider_chat(provider: dict, model_name: str, system_prompt: str, us
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            max_tokens=3000,
+            max_tokens=6000,
             temperature=0.1,
             stream=True,
         )
@@ -1434,7 +1717,7 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detecte
     Features hybrid instant pre-extraction: contact details and profile photo are placed
     in the DOM within milliseconds before neural streaming finishes.
     """
-    skill_to_cat, cat_headers = build_skill_category_map(text)
+    skill_to_cat, cat_headers, raw_skills = build_skill_category_map(text)
     system_prompt, user_prompt = _get_system_and_user_prompts(text)
 
     yield {"event": "status", "stage": 1, "label": "Document read & structured text extracted", "pct": 5}
@@ -1685,9 +1968,8 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detecte
                             emitted_section_items_count[section] += 1
 
                             processed_single = post_process_json({section: [raw_item_obj]}, raw_text=text)
-                            cleaned_list = processed_single.get(section, [raw_item_obj])
-                            if cleaned_list and len(cleaned_list) > 0:
-                                cleaned_item = cleaned_list[0]
+                            cleaned_list = processed_single.get(section, [])
+                            for cleaned_item in cleaned_list:
                                 if section == 'projects':
                                     item_key = (cleaned_item.get('title') or '').strip().lower()
                                     item_title = cleaned_item.get('title') or 'Project'
@@ -1767,14 +2049,28 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detecte
                         validated.theme_settings = {}
                     validated.theme_settings["font_family"] = detected_font
 
+                # Emit any skills that were added or merged during post-processing
+                if validated.skills:
+                    for sk in validated.skills:
+                        s_key = sk.name.lower()
+                        if s_key not in emitted_skills_names:
+                            emitted_skills_names.add(s_key)
+                            yield {
+                                "event": "skill_item",
+                                "skill": sk.model_dump(),
+                                "index": len(emitted_skills_names),
+                                "label": f"Placed Skill: {sk.name} ({sk.category})",
+                                "pct": 96
+                            }
+
                 for sec in ["experience", "education", "projects", "certifications", "languages", "awards", "volunteer"]:
-                    if sec not in emitted_sections and getattr(validated, sec, None):
-                        emitted_sections.add(sec)
+                    sec_val = getattr(validated, sec, None)
+                    if sec_val:
                         yield {
                             "event": "section_update",
                             "section": sec,
-                            "data": [item.model_dump() for item in getattr(validated, sec)],
-                            "label": f"Placed {len(getattr(validated, sec))} {sec.title()} items",
+                            "data": [item.model_dump() for item in sec_val],
+                            "label": f"Placed {len(sec_val)} {sec.title()} items",
                             "pct": 98
                         }
 
