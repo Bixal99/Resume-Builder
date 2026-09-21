@@ -58,6 +58,9 @@ class Settings(BaseSettings):
     # ---- AI & Parsing ----
     hf_token: Optional[str] = None
     huggingface_token: Optional[str] = None
+    groq_api_key: Optional[str] = None
+    openai_api_key: Optional[str] = None
+    openrouter_api_key: Optional[str] = None
 
     # ---- Computed Properties ----
 

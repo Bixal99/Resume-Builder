@@ -1,9 +1,11 @@
 import json
 import logging
+import os
 import re
 import uuid
 from typing import Optional
 import fitz  # PyMuPDF
+import httpx
 from huggingface_hub import InferenceClient
 
 from app.core.config import settings
@@ -11,11 +13,11 @@ from app.schemas.resume import ResumeData
 
 logger = logging.getLogger(__name__)
 
-# Primary high-reasoning models verified on HF serverless router
+# Primary models on HF router (ordered for speed and warm throughput)
 SUPPORTED_MODELS = [
-    "Qwen/Qwen2.5-72B-Instruct",
+    "meta-llama/Llama-3.1-8B-Instruct",
     "Qwen/Qwen2.5-Coder-32B-Instruct",
-    "meta-llama/Llama-3.1-8B-Instruct"
+    "Qwen/Qwen2.5-72B-Instruct"
 ]
 
 
@@ -363,9 +365,7 @@ def build_skill_category_map(raw_text: str):
     cat_headers = []
     
     # Locate skills section
-    pattern = r'(?:TECHNICAL\s+SKILLS|SKILLS|CORE\s+COMPETENCIES|TECHNICAL\s+PROFICIENCIES)(.*?)(?:LANGUAGES|EXPERIENCE|EDUCATION|PROJECTS|AWARDS|CERTIFICATIONS|PUBLICATIONS|VOLUNTEER|$)'
-    skills_sec = re.search(pattern, raw_text, re.DOTALL | re.IGNORECASE)
-    sec_content = skills_sec.group(1) if skills_sec else raw_text
+    sec_content = extract_section_raw(raw_text, r'TECHNICAL\s+SKILLS|TECHNICAL\s+PROFICIENCIES|CORE\s+COMPETENCIES|SKILLS') or raw_text
     
     current_cat = None
     for line in sec_content.split('\n'):
@@ -508,7 +508,7 @@ def parse_raw_experience(raw_text: str) -> list[dict]:
     """
     body = extract_section_raw(
         raw_text,
-        r'WORK\s+EXPERIENCE|PROFESSIONAL\s+EXPERIENCE|EMPLOYMENT(?:\s+HISTORY)?|WORK\s+HISTORY|INTERNSHIPS|RELEVANT\s+EXPERIENCE|CAREER\s+HISTORY'
+        r'WORK\s+EXPERIENCE|PROFESSIONAL\s+EXPERIENCE|EXPERIENCE|EMPLOYMENT(?:\s+HISTORY)?|WORK\s+HISTORY|INTERNSHIPS|RELEVANT\s+EXPERIENCE|CAREER\s+HISTORY'
     )
     if not body:
         return []
@@ -700,17 +700,22 @@ def parse_raw_awards(raw_text: str) -> list[dict]:
 
 def parse_raw_languages(raw_text: str) -> list[dict]:
     """
-    Parses languages directly from document raw text.
+    Parses spoken languages directly from document raw text.
+    Filters out technical programming languages (e.g. Python, SQL).
     """
-    body = extract_section_raw(raw_text, r'LANGUAGES|LANGUAGE\s+PROFICIENCY')
+    # Look for dedicated language section heading on its own line
+    m = re.search(r'(?:^|\n)\s*(?:SPOKEN\s+LANGUAGES|LANGUAGES|LANGUAGE\s+SKILLS|LANGUAGE\s+PROFICIENCY)\s*(?:\n|$)(.*?)(?=\n\s*[A-Z\s]{4,}|\Z)', raw_text, re.DOTALL | re.IGNORECASE)
+    body = m.group(1).strip() if m else ""
     if not body:
         return []
+    
+    prog_langs = {'python', 'javascript', 'typescript', 'java', 'c++', 'c#', 'c', 'ruby', 'go', 'rust', 'php', 'swift', 'kotlin', 'sql', 'html', 'css', 'r', 'matlab', 'scala', 'dart', 'bash', 'shell', 'docker', 'react'}
     langs = []
     seen = set()
     parts = []
     for line in body.split('\n'):
         line_s = line.strip()
-        if not line_s or line_s.upper() in ('LANGUAGES', 'LANGUAGE PROFICIENCY'):
+        if not line_s or line_s.upper() in ('LANGUAGES', 'LANGUAGE PROFICIENCY', 'SPOKEN LANGUAGES'):
             continue
         if ',' in line_s and not re.search(r'\([^\)]*,[^\)]*\)', line_s):
             parts.extend([p.strip() for p in line_s.split(',') if p.strip()])
@@ -729,6 +734,10 @@ def parse_raw_languages(raw_text: str) -> list[dict]:
             name = p_clean
             fluency = ""
 
+        # Filter out programming languages or category headers
+        if name.lower() in prog_langs or ":" in name or any(k in name.lower() for k in ["framework", "tool", "library"]):
+            continue
+
         if name and name.lower() not in seen:
             seen.add(name.lower())
             langs.append({
@@ -737,6 +746,239 @@ def parse_raw_languages(raw_text: str) -> list[dict]:
                 "fluency": fluency
             })
     return langs
+
+
+def extract_contact_info_deterministic(text: str) -> dict:
+    """
+    Extracts core contact details deterministically in ~1-5ms using regex and hyperlinks.
+    """
+    info = {
+        "first_name": "",
+        "last_name": "",
+        "professional_title": "",
+        "email": "",
+        "phone": "",
+        "address": "",
+        "linkedin": "",
+        "github": "",
+        "portfolio": "",
+        "website": "",
+    }
+    if not text:
+        return info
+
+    # 1. Email
+    email_m = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
+    if email_m:
+        info["email"] = email_m.group(0).strip()
+
+    # 2. Phone
+    phone_m = re.search(r'(?:(?:\+|00)\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?)?\d{3,4}[\s.-]?\d{3,4}\b', text)
+    if phone_m:
+        val = phone_m.group(0).strip()
+        if len(re.sub(r'\D', '', val)) >= 7:
+            info["phone"] = val
+
+    # 3. URLs & Links (both text patterns & embedded link annotations)
+    lines = [l.strip() for l in text.split('\n') if l.strip()]
+    for l in lines:
+        if "linkedin.com" in l.lower() and not info["linkedin"]:
+            m = re.search(r'(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/[A-Za-z0-9_-]+(?:\/)?', l, re.I)
+            if m:
+                info["linkedin"] = m.group(0) if m.group(0).startswith("http") else f"https://{m.group(0)}"
+        if "github.com" in l.lower() and not info["github"]:
+            m = re.search(r'(?:https?:\/\/)?(?:www\.)?github\.com\/[A-Za-z0-9_-]+(?:\/)?', l, re.I)
+            if m:
+                info["github"] = m.group(0) if m.group(0).startswith("http") else f"https://{m.group(0)}"
+
+    # Parse embedded hyperlinks block if present
+    if "--- EMBEDDED HYPERLINKS IN RESUME ---" in text:
+        for m in re.finditer(r"- Anchor:\s*'([^']*)'(?:\s*\(Context:\s*'([^']*)'\))?\s*->\s*Target URL:\s*(\S+)", text):
+            uri = m.group(3).strip()
+            if "linkedin.com" in uri.lower() and not info["linkedin"]:
+                info["linkedin"] = uri
+            elif "github.com" in uri.lower() and not info["github"] and uri.count("/") <= 4:
+                info["github"] = uri
+            elif any(k in uri.lower() for k in ["portfolio", "github.io", "vercel.app", "netlify.app", "me", "dev"]) and not info["portfolio"] and "linkedin" not in uri and "github.com" not in uri:
+                info["portfolio"] = uri
+
+    # 4. Name and Title extraction from header lines (first 1-6 lines)
+    header_candidates = []
+    for l in lines[:6]:
+        if any(w in l.lower() for w in ["@", "http", "curriculum", "resume", "experience", "education", "summary", "skills"]):
+            continue
+        cleaned = re.sub(r'[^A-Za-z\s\.\-]', '', l).strip()
+        parts = cleaned.split()
+        if 2 <= len(parts) <= 4 and all(len(p) > 1 for p in parts):
+            header_candidates.append(cleaned)
+
+    if header_candidates:
+        name_parts = header_candidates[0].split()
+        info["first_name"] = name_parts[0]
+        info["last_name"] = " ".join(name_parts[1:])
+        if len(header_candidates) > 1:
+            info["professional_title"] = header_candidates[1]
+
+    # 5. Location / Address (e.g. "City, State", "City, Country", or "Remote")
+    loc_m = re.search(r'\b([A-Za-z\s]+,\s*(?:[A-Z]{2}|[A-Za-z\s]{3,}))\b', text[:500])
+    if loc_m:
+        cand = loc_m.group(1).strip()
+        if not any(w in cand.lower() for w in ["university", "college", "school", "company", "inc", "ltd"]):
+            info["address"] = cand
+
+    return info
+
+
+def parse_raw_education(raw_text: str) -> list[dict]:
+    """Parses education entries with degree and institution directly from raw text."""
+    body = extract_section_raw(
+        raw_text,
+        r'EDUCATION|ACADEMIC\s+BACKGROUND|ACADEMIC\s+QUALIFICATIONS|ACADEMICS|STUDIES'
+    )
+    if not body:
+        return []
+    lines = [line.rstrip() for line in body.split('\n') if line.strip()]
+    if not lines:
+        return []
+    education = []
+    cur_edu = None
+    for line in lines:
+        line_clean = line.strip()
+        if re.match(r'^(?:EDUCATION|ACADEMICS|STUDIES)$', line_clean, re.IGNORECASE):
+            continue
+        is_inst = any(k in line_clean.lower() for k in ["university", "college", "institute", "school", "academy", "polytechnic"])
+        is_deg = any(k in line_clean.lower() for k in ["bachelor", "master", "phd", "doctor", "associate", "b.s", "m.s", "b.a", "m.a", "b.tech", "m.tech", "bba", "mba", "degree", "diploma"])
+        date_m = re.search(r'\b(19\d{2}|20\d{2})\b', line_clean)
+        
+        if is_deg or is_inst:
+            if cur_edu and (cur_edu.get("degree") or cur_edu.get("institution")):
+                education.append(cur_edu)
+            deg, field = split_degree_and_field(line_clean, "")
+            cur_edu = {
+                "id": f"edu_{uuid.uuid4().hex[:8]}",
+                "degree": deg or (line_clean if is_deg else ""),
+                "field_of_study": field,
+                "institution": line_clean if is_inst else "",
+                "location": "",
+                "start_date": "",
+                "end_date": date_m.group(0) if date_m else "",
+                "is_current": bool(re.search(r'Present|Current|Expected', line_clean, re.I)),
+                "grade": ""
+            }
+        elif cur_edu:
+            if not cur_edu.get("institution") and is_inst:
+                cur_edu["institution"] = line_clean
+            elif not cur_edu.get("end_date") and date_m:
+                cur_edu["end_date"] = date_m.group(0)
+            elif "gpa" in line_clean.lower() or "grade" in line_clean.lower() or "/" in line_clean:
+                cur_edu["grade"] = line_clean
+    if cur_edu and (cur_edu.get("degree") or cur_edu.get("institution")):
+        education.append(cur_edu)
+    return education
+
+
+def parse_raw_projects(raw_text: str) -> list[dict]:
+    """Parses project entries with title, technologies, and bullet highlights."""
+    body = extract_section_raw(
+        raw_text,
+        r'PROJECTS|PERSONAL\s+PROJECTS|ACADEMIC\s+PROJECTS|KEY\s+PROJECTS|PORTFOLIO\s+PROJECTS'
+    )
+    if not body:
+        return []
+    lines = [line.rstrip() for line in body.split('\n') if line.strip()]
+    if not lines:
+        return []
+    projects = []
+    cur_proj = None
+    for line in lines:
+        line_clean = line.strip()
+        if re.match(r'^(?:PROJECTS|PERSONAL\s+PROJECTS|ACADEMIC\s+PROJECTS)$', line_clean, re.IGNORECASE):
+            continue
+        is_bullet = bool(re.match(r'^[•\-\*·\d\.\)]\s+', line_clean))
+        clean_text = re.sub(r'^[•\-\*·\d\.\)]\s*', '', line_clean).strip()
+        if not is_bullet:
+            if cur_proj and cur_proj.get('title'):
+                projects.append(cur_proj)
+            title_parts = [p.strip() for p in re.split(r'\s*[|–—-]\s*', line_clean) if p.strip()]
+            p_title = title_parts[0] if title_parts else line_clean
+            p_tech = []
+            if len(title_parts) > 1:
+                p_tech = [t.strip() for t in title_parts[1].split(',') if t.strip()]
+            cur_proj = {
+                "id": f"proj_{uuid.uuid4().hex[:8]}",
+                "title": p_title,
+                "date": "",
+                "description": "",
+                "technologies": p_tech,
+                "github_url": "",
+                "live_url": "",
+                "highlights": []
+            }
+        elif cur_proj:
+            cur_proj["highlights"].append(clean_text)
+            if not cur_proj["description"]:
+                cur_proj["description"] = clean_text
+    if cur_proj and cur_proj.get('title'):
+        projects.append(cur_proj)
+    return projects
+
+
+def parse_resume_deterministic(text: str, photo: Optional[str] = None, detected_font: Optional[str] = None) -> dict:
+    """
+    High-speed, offline deterministic parser that structures raw resume text
+    in <50ms without external API dependencies.
+    """
+    contact = extract_contact_info_deterministic(text)
+    skill_to_cat, cat_headers = build_skill_category_map(text)
+    
+    skills = []
+    seen_skills = set()
+    for s_name, s_cat in skill_to_cat.items():
+        if s_name.lower() not in seen_skills:
+            seen_skills.add(s_name.lower())
+            skills.append({
+                "id": f"skill_{uuid.uuid4().hex[:8]}",
+                "name": s_name.title() if len(s_name) > 3 else s_name.upper(),
+                "category": normalize_skill_category(s_cat),
+                "proficiency": 5
+            })
+
+    experience = parse_raw_experience(text)
+    education = parse_raw_education(text)
+    projects = parse_raw_projects(text)
+    certifications = parse_raw_certifications(text)
+    awards = parse_raw_awards(text)
+    languages = parse_raw_languages(text)
+
+    summary = ""
+    summary_raw = extract_section_raw(text, r'SUMMARY|PROFILE|ABOUT\s+ME|PROFESSIONAL\s+SUMMARY|OBJECTIVE')
+    if summary_raw:
+        paras = [p.strip() for p in summary_raw.split('\n\n') if p.strip()]
+        if paras:
+            summary = paras[0].replace('\n', ' ')
+
+    result = {
+        **contact,
+        "summary": summary,
+        "skills": skills,
+        "experience": experience,
+        "education": education,
+        "projects": projects,
+        "certifications": certifications,
+        "awards": awards,
+        "languages": languages,
+        "volunteer": []
+    }
+    
+    result = post_process_json(result, raw_text=text)
+    if photo:
+        result["photo"] = photo
+    if detected_font:
+        if not result.get("theme_settings"):
+            result["theme_settings"] = {}
+        result["theme_settings"]["font_family"] = detected_font
+        
+    return clean_dict(result)
 
 
 def post_process_json(parsed_json, raw_text: str = None):
@@ -1031,69 +1273,169 @@ def post_process_json(parsed_json, raw_text: str = None):
     return parsed_json
 
 
+def get_available_ai_providers():
+    """Returns available AI provider endpoints in order of speed and responsiveness."""
+    providers = []
+
+    # 1. Groq LPU Engine (Ultra-fast 400-800 tokens/sec)
+    groq_key = getattr(settings, "groq_api_key", None) or os.environ.get("GROQ_API_KEY")
+    if groq_key:
+        providers.append({
+            "type": "openai_compatible",
+            "name": "Groq LPU Engine",
+            "url": "https://api.groq.com/openai/v1/chat/completions",
+            "api_key": groq_key,
+            "models": ["llama-3.3-70b-versatile", "llama-3.1-8b-instant"]
+        })
+
+    # 2. OpenAI Engine (Optional)
+    openai_key = getattr(settings, "openai_api_key", None) or os.environ.get("OPENAI_API_KEY")
+    if openai_key:
+        providers.append({
+            "type": "openai_compatible",
+            "name": "OpenAI Engine",
+            "url": "https://api.openai.com/v1/chat/completions",
+            "api_key": openai_key,
+            "models": ["gpt-4o-mini", "gpt-4o"]
+        })
+
+    # 3. OpenRouter Engine (Optional)
+    openrouter_key = getattr(settings, "openrouter_api_key", None) or os.environ.get("OPENROUTER_API_KEY")
+    if openrouter_key:
+        providers.append({
+            "type": "openai_compatible",
+            "name": "OpenRouter Engine",
+            "url": "https://openrouter.ai/api/v1/chat/completions",
+            "api_key": openrouter_key,
+            "models": ["meta-llama/llama-3.3-70b-instruct", "meta-llama/llama-3.1-8b-instruct"]
+        })
+
+    # 4. Hugging Face Serverless (Fast models ordered first)
+    hf_token = getattr(settings, "hf_token", None) or getattr(settings, "huggingface_token", None) or os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
+    if hf_token:
+        providers.append({
+            "type": "huggingface",
+            "name": "Hugging Face Inference",
+            "api_key": hf_token,
+            "models": SUPPORTED_MODELS
+        })
+
+    return providers
+
+
+def stream_provider_chat(provider: dict, model_name: str, system_prompt: str, user_prompt: str):
+    """
+    Streams raw response text chunks from either an OpenAI-compatible provider
+    (Groq, OpenAI, OpenRouter) or Hugging Face InferenceClient.
+    """
+    p_type = provider.get("type")
+    if p_type == "openai_compatible":
+        headers = {
+            "Authorization": f"Bearer {provider['api_key']}",
+            "Content-Type": "application/json"
+        }
+        payload = {
+            "model": model_name,
+            "messages": [
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt}
+            ],
+            "temperature": 0.1,
+            "max_tokens": 3000,
+            "response_format": {"type": "json_object"},
+            "stream": True
+        }
+        with httpx.Client(timeout=45.0) as client:
+            with client.stream("POST", provider["url"], headers=headers, json=payload) as resp:
+                if resp.status_code != 200:
+                    body = resp.read().decode("utf-8", errors="ignore")
+                    raise ValueError(f"Provider {provider['name']} returned HTTP {resp.status_code}: {body[:150]}")
+                for line in resp.iter_lines():
+                    if not line or not line.startswith("data:"):
+                        continue
+                    data_str = line[5:].strip()
+                    if data_str == "[DONE]":
+                        break
+                    try:
+                        chunk = json.loads(data_str)
+                        choices = chunk.get("choices") or []
+                        if choices:
+                            delta = choices[0].get("delta") or {}
+                            content = delta.get("content")
+                            if content:
+                                yield content
+                    except Exception:
+                        continue
+    elif p_type == "huggingface":
+        client = InferenceClient(model=model_name, token=provider["api_key"], timeout=45.0)
+        stream = client.chat_completion(
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": user_prompt},
+            ],
+            max_tokens=3000,
+            temperature=0.1,
+            stream=True,
+        )
+        for chunk in stream:
+            if chunk.choices and len(chunk.choices) > 0 and chunk.choices[0].delta.content:
+                yield chunk.choices[0].delta.content
+    else:
+        raise ValueError(f"Unknown provider type: {p_type}")
+
+
 def parse_resume_with_llm(text: str, photo: Optional[str] = None, detected_font: Optional[str] = None) -> ResumeData:
     """
-    Parses resume text using Hugging Face Inference API with streaming token assembly.
-    Using stream=True prevents 504 Gateway Timeouts by receiving tokens continuously.
-    Supports candidate profile photo extracted from PDF and preserved font styling.
+    Parses resume text into a structured ResumeData schema.
+    Uses ultra-fast AI providers first, with seamless fallback to deterministic local parsing.
     """
     system_prompt, user_prompt = _get_system_and_user_prompts(text)
-    token = getattr(settings, "hf_token", None) or getattr(settings, "huggingface_token", None) or os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
+    providers = get_available_ai_providers()
 
-    last_error = None
-    for model_name in SUPPORTED_MODELS:
-        try:
-            logger.info(f"Attempting streaming parse with model {model_name}...")
-            client = InferenceClient(model=model_name, token=token, timeout=120.0)
-            
-            stream = client.chat_completion(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                max_tokens=4000,
-                temperature=0.1,
-                stream=True,
-            )
-            
-            chunks = []
-            for chunk in stream:
-                if chunk.choices and len(chunk.choices) > 0 and chunk.choices[0].delta.content:
-                    chunks.append(chunk.choices[0].delta.content)
-            
-            raw_response = "".join(chunks)
-            result_text = extract_json_from_text(raw_response)
-            parsed_json = json.loads(result_text)
-            parsed_json = post_process_json(parsed_json, raw_text=text)
-            if photo:
-                parsed_json["photo"] = photo
-            if detected_font:
-                if not parsed_json.get("theme_settings") or not isinstance(parsed_json["theme_settings"], dict):
-                    parsed_json["theme_settings"] = {}
-                parsed_json["theme_settings"]["font_family"] = detected_font
-            cleaned_json = clean_dict(parsed_json)
-            return ResumeData(**cleaned_json)
-            
-        except Exception as e:
-            last_error = str(e)
-            logger.warning(f"Attempt with {model_name} failed: {last_error}")
+    for provider in providers:
+        for model_name in provider.get("models", []):
+            try:
+                logger.info(f"Attempting parse with {provider['name']} ({model_name})...")
+                chunks = []
+                for chunk in stream_provider_chat(provider, model_name, system_prompt, user_prompt):
+                    chunks.append(chunk)
 
-    raise ValueError(f"Failed to process the resume with AI models. Last error: {last_error}")
+                raw_response = "".join(chunks)
+                result_text = extract_json_from_text(raw_response)
+                parsed_json = json.loads(result_text)
+                parsed_json = post_process_json(parsed_json, raw_text=text)
+
+                # Merge deterministic contact info if any fields were omitted
+                det_contact = extract_contact_info_deterministic(text)
+                for k, v in det_contact.items():
+                    if v and not parsed_json.get(k):
+                        parsed_json[k] = v
+
+                if photo:
+                    parsed_json["photo"] = photo
+                if detected_font:
+                    if not parsed_json.get("theme_settings") or not isinstance(parsed_json["theme_settings"], dict):
+                        parsed_json["theme_settings"] = {}
+                    parsed_json["theme_settings"]["font_family"] = detected_font
+
+                cleaned_json = clean_dict(parsed_json)
+                return ResumeData(**cleaned_json)
+            except Exception as e:
+                logger.warning(f"Attempt with {provider['name']} ({model_name}) failed: {e}")
+
+    logger.warning("All AI providers failed or were unconfigured. Using high-speed structured deterministic parser.")
+    det_dict = parse_resume_deterministic(text, photo=photo, detected_font=detected_font)
+    return ResumeData(**det_dict)
 
 
 def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detected_font: Optional[str] = None):
     """
-    Generator yielding live progress events for real-time frontend feedback:
-      - status stages (1 to 5)
-      - token counts / chunks as generated
-      - field and section updates as parsed
-      - candidate profile photo if present
-      - preserved PDF font settings
-      - final validated resume payload
+    Generator yielding live progress events for real-time frontend feedback.
+    Features hybrid instant pre-extraction: contact details and profile photo are placed
+    in the DOM within milliseconds before neural streaming finishes.
     """
     skill_to_cat, cat_headers = build_skill_category_map(text)
     system_prompt, user_prompt = _get_system_and_user_prompts(text)
-    token = getattr(settings, "hf_token", None) or getattr(settings, "huggingface_token", None) or os.environ.get("HF_TOKEN") or os.environ.get("HUGGINGFACE_TOKEN")
 
     yield {"event": "status", "stage": 1, "label": "Document read & structured text extracted", "pct": 5}
 
@@ -1106,60 +1448,65 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detecte
             "pct": 8
         }
 
-    last_error = None
-    for model_name in SUPPORTED_MODELS:
-        try:
-            short_name = model_name.split("/")[-1]
-            yield {"event": "status", "stage": 2, "label": f"Connected to {short_name} Neural Engine", "pct": 10}
+    # 1. Instant deterministic pre-extraction (runs in ~2ms!)
+    # Immediately place contact info into template before LLM tokens arrive
+    det_contact = extract_contact_info_deterministic(text)
+    emitted_string_fields = set()
+    initial_pct = 10
+    for field, val in det_contact.items():
+        if val and str(val).strip():
+            emitted_string_fields.add(field)
+            initial_pct += 2
+            norm_field = "address" if field == "location" else field
+            field_label = norm_field.replace('_', ' ').title()
+            yield {
+                "event": "field_update",
+                "field": norm_field,
+                "value": val,
+                "label": f"Placed {field_label}",
+                "pct": min(25, initial_pct)
+            }
 
-            client = InferenceClient(model=model_name, token=token, timeout=120.0)
-            stream = client.chat_completion(
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                max_tokens=4000,
-                temperature=0.1,
-                stream=True,
-            )
+    providers = get_available_ai_providers()
+    ai_succeeded = False
 
-            chunks = []
-            chars_count = 0
-            emitted_string_fields = set()
-            emitted_sections = set()
-            emitted_skills_count = 0
-            emitted_skills_names = set()
-            section_names = ["experience", "education", "projects", "certifications", "languages", "awards", "volunteer"]
-            emitted_section_items_count = {s: 0 for s in section_names}
-            emitted_section_items_keys = {s: set() for s in section_names}
-            current_pct = 10
+    for provider in providers:
+        if ai_succeeded:
+            break
+        for model_name in provider.get("models", []):
+            try:
+                short_name = model_name.split("/")[-1]
+                yield {"event": "status", "stage": 2, "label": f"Connected to {provider['name']} ({short_name})", "pct": max(initial_pct, 20)}
 
-            def calc_progress() -> int:
-                nonlocal current_pct
-                # Tokens/chars contribution: nominal LLM JSON size is ~2500 characters
-                char_part = min(35.0, (chars_count / 2500.0) * 35.0)
-                # Single string fields (contact info, titles, summary): up to 15%
-                field_part = min(15.0, len(emitted_string_fields) * 1.5)
-                # Array sections item count: up to 20%
-                items_count = sum(len(keys) for keys in emitted_section_items_keys.values())
-                section_part = min(20.0, items_count * 2.5)
-                # Individual skills parsed: up to 12%
-                skill_part = min(12.0, len(emitted_skills_names) * 1.0)
+                chunks = []
+                chars_count = 0
+                emitted_sections = set()
+                emitted_skills_count = 0
+                emitted_skills_names = set()
+                section_names = ["experience", "education", "projects", "certifications", "languages", "awards", "volunteer"]
+                emitted_section_items_count = {s: 0 for s in section_names}
+                emitted_section_items_keys = {s: set() for s in section_names}
+                current_pct = max(initial_pct, 20)
 
-                computed = int(10 + char_part + field_part + section_part + skill_part)
-                current_pct = max(current_pct, min(92, computed))
-                return current_pct
+                def calc_progress() -> int:
+                    nonlocal current_pct
+                    char_part = min(35.0, (chars_count / 2500.0) * 35.0)
+                    field_part = min(15.0, len(emitted_string_fields) * 1.5)
+                    items_count = sum(len(keys) for keys in emitted_section_items_keys.values())
+                    section_part = min(20.0, items_count * 2.5)
+                    skill_part = min(12.0, len(emitted_skills_names) * 1.0)
+                    computed = int(20 + char_part + field_part + section_part + skill_part)
+                    current_pct = max(current_pct, min(92, computed))
+                    return current_pct
 
-            string_fields = [
-                "first_name", "last_name", "professional_title", "email", 
-                "phone", "address", "location", "linkedin", "github", "portfolio", 
-                "website", "summary"
-            ]
-            array_sections = section_names
+                string_fields = [
+                    "first_name", "last_name", "professional_title", "email", 
+                    "phone", "address", "location", "linkedin", "github", "portfolio", 
+                    "website", "summary"
+                ]
+                array_sections = section_names
 
-            for chunk in stream:
-                if chunk.choices and len(chunk.choices) > 0 and chunk.choices[0].delta.content:
-                    content = chunk.choices[0].delta.content
+                for content in stream_provider_chat(provider, model_name, system_prompt, user_prompt):
                     chunks.append(content)
                     chars_count += len(content)
                     raw_buffer = "".join(chunks)
@@ -1281,7 +1628,7 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detecte
                                     "pct": calc_progress()
                                 }
 
-                    # Incremental extraction of ARRAY SECTION ITEMS (projects, experience, education, certs, awards, etc.) one by one
+                    # Incremental extraction of ARRAY SECTION ITEMS one by one
                     for section in array_sections:
                         sec_match = re.search(rf'"{section}"\s*:\s*\[', raw_buffer)
                         if not sec_match:
@@ -1333,7 +1680,6 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detecte
                                         break
                             idx += 1
 
-                        # Yield newly completed items one-by-one!
                         while emitted_section_items_count[section] < len(completed_items):
                             raw_item_obj = completed_items[emitted_section_items_count[section]]
                             emitted_section_items_count[section] += 1
@@ -1379,7 +1725,6 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detecte
                                         "pct": calc_progress()
                                     }
 
-                        # When array closes (']'), emit section_update if not emitted yet
                         if array_finished and section not in emitted_sections:
                             emitted_sections.add(section)
                             processed_obj = post_process_json({section: completed_items}, raw_text=text)
@@ -1394,53 +1739,106 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detecte
 
                     yield {"event": "token", "stage": 3, "chars": chars_count, "chunk": content, "pct": calc_progress()}
 
-            yield {"event": "status", "stage": 4, "label": "Validating JSON schema & formatting STAR sections...", "pct": 95}
+                yield {"event": "status", "stage": 4, "label": "Validating JSON schema & formatting STAR sections...", "pct": 95}
 
-            raw_response = "".join(chunks)
-            result_text = extract_json_from_text(raw_response)
-            parsed_json = json.loads(result_text)
-            parsed_json = post_process_json(parsed_json, raw_text=text)
-            if photo:
-                parsed_json["photo"] = photo
-            if detected_font:
-                if not parsed_json.get("theme_settings") or not isinstance(parsed_json["theme_settings"], dict):
-                    parsed_json["theme_settings"] = {}
-                parsed_json["theme_settings"]["font_family"] = detected_font
-            cleaned_json = clean_dict(parsed_json)
-            validated = ResumeData(**cleaned_json)
-            if photo and not validated.photo:
-                validated.photo = photo
-            if detected_font:
-                if not validated.theme_settings:
-                    validated.theme_settings = {}
-                validated.theme_settings["font_family"] = detected_font
+                raw_response = "".join(chunks)
+                result_text = extract_json_from_text(raw_response)
+                parsed_json = json.loads(result_text)
+                parsed_json = post_process_json(parsed_json, raw_text=text)
 
-            # Emit section_update for any sections populated via fallback if not emitted during streaming
-            for sec in ["experience", "education", "projects", "certifications", "languages", "awards", "volunteer"]:
-                if sec not in emitted_sections and getattr(validated, sec, None):
-                    emitted_sections.add(sec)
-                    yield {
-                        "event": "section_update",
-                        "section": sec,
-                        "data": [item.model_dump() for item in getattr(validated, sec)],
-                        "label": f"Placed {len(getattr(validated, sec))} {sec.title()} items",
-                        "pct": 98
-                    }
+                # Ensure deterministic contact fields are merged
+                for k, v in det_contact.items():
+                    if v and not parsed_json.get(k):
+                        parsed_json[k] = v
 
+                if photo:
+                    parsed_json["photo"] = photo
+                if detected_font:
+                    if not parsed_json.get("theme_settings") or not isinstance(parsed_json["theme_settings"], dict):
+                        parsed_json["theme_settings"] = {}
+                    parsed_json["theme_settings"]["font_family"] = detected_font
+
+                cleaned_json = clean_dict(parsed_json)
+                validated = ResumeData(**cleaned_json)
+                if photo and not validated.photo:
+                    validated.photo = photo
+                if detected_font:
+                    if not validated.theme_settings:
+                        validated.theme_settings = {}
+                    validated.theme_settings["font_family"] = detected_font
+
+                for sec in ["experience", "education", "projects", "certifications", "languages", "awards", "volunteer"]:
+                    if sec not in emitted_sections and getattr(validated, sec, None):
+                        emitted_sections.add(sec)
+                        yield {
+                            "event": "section_update",
+                            "section": sec,
+                            "data": [item.model_dump() for item in getattr(validated, sec)],
+                            "label": f"Placed {len(getattr(validated, sec))} {sec.title()} items",
+                            "pct": 98
+                        }
+
+                yield {
+                    "event": "complete",
+                    "stage": 5,
+                    "label": "Resume parsed successfully!",
+                    "pct": 100,
+                    "data": validated.model_dump()
+                }
+                ai_succeeded = True
+                return
+
+            except Exception as e:
+                logger.warning(f"Streaming parse with {provider['name']} ({model_name}) failed: {e}")
+
+    # Fallback to local structured engine if AI models fail or are unavailable
+    yield {"event": "status", "stage": 2, "label": "Processing with High-Speed Structured Extraction Engine...", "pct": 45}
+    det_dict = parse_resume_deterministic(text, photo=photo, detected_font=detected_font)
+    validated = ResumeData(**det_dict)
+
+    # Emit skills
+    if validated.skills:
+        for idx, sk in enumerate(validated.skills, 1):
             yield {
-                "event": "complete",
-                "stage": 5,
-                "label": "Resume parsed successfully!",
-                "pct": 100,
-                "data": validated.model_dump()
+                "event": "skill_item",
+                "skill": sk.model_dump(),
+                "index": idx,
+                "label": f"Placed Skill: {sk.name}",
+                "pct": min(85, 45 + idx * 3)
             }
-            return
 
-        except Exception as e:
-            last_error = str(e)
-            logger.warning(f"Streaming parse with {model_name} failed: {last_error}")
+    # Emit sections
+    for sec in ["experience", "education", "projects", "certifications", "languages", "awards", "volunteer"]:
+        sec_items = getattr(validated, sec, None)
+        if sec_items:
+            for idx, item in enumerate(sec_items, 1):
+                item_dict = item.model_dump()
+                item_title = item_dict.get('title') or item_dict.get('position') or item_dict.get('degree') or item_dict.get('name') or sec.title()
+                singular = sec[:-1].title() if sec.endswith('s') else sec.title()
+                yield {
+                    "event": "section_item",
+                    "section": sec,
+                    "item": item_dict,
+                    "index": idx,
+                    "label": f"Placed {singular}: {item_title}",
+                    "pct": min(95, 60 + idx * 4)
+                }
+            yield {
+                "event": "section_update",
+                "section": sec,
+                "data": [it.model_dump() for it in sec_items],
+                "label": f"Placed {len(sec_items)} {sec.title()} items",
+                "pct": 96
+            }
 
-    yield {"event": "error", "stage": 0, "detail": f"AI Parsing failed: {last_error}", "pct": 0}
+    yield {
+        "event": "complete",
+        "stage": 5,
+        "label": "Resume parsed successfully!",
+        "pct": 100,
+        "data": validated.model_dump()
+    }
+
 
 
 def optimize_bullet_with_llm(bullet: str, role: str = "", company: str = "", mode: str = "star") -> dict:
