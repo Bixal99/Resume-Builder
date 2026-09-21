@@ -90,16 +90,49 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    // --- Hero Showcase Template Switcher ---
+    // --- Hero Studio Showcase & Color Palette Switcher ---
     const themeTabs = document.querySelectorAll('.showcase-theme-tab');
     const showcaseDoc = document.getElementById('showcase-doc');
+    const swatches = document.querySelectorAll('.swatch-btn');
+
+    const themeColorMap = {
+        contemporary: '#2563eb',
+        modern: '#0d9488',
+        minimalist: '#1e293b',
+        harvard: '#881337'
+    };
+
     if (themeTabs.length > 0 && showcaseDoc) {
         themeTabs.forEach(tab => {
             tab.addEventListener('click', () => {
                 themeTabs.forEach(t => t.classList.remove('active'));
                 tab.classList.add('active');
                 const theme = tab.dataset.theme || 'contemporary';
-                showcaseDoc.className = `showcase-document theme-${theme}`;
+                showcaseDoc.className = `studio-document-sheet theme-${theme}`;
+
+                // Sync color swatch if exists
+                const mappedColor = themeColorMap[theme];
+                if (mappedColor) {
+                    showcaseDoc.style.setProperty('--doc-accent', mappedColor);
+                    swatches.forEach(s => {
+                        if (s.dataset.color === mappedColor) {
+                            s.classList.add('active');
+                        } else {
+                            s.classList.remove('active');
+                        }
+                    });
+                }
+            });
+        });
+    }
+
+    if (swatches.length > 0 && showcaseDoc) {
+        swatches.forEach(swatch => {
+            swatch.addEventListener('click', () => {
+                swatches.forEach(s => s.classList.remove('active'));
+                swatch.classList.add('active');
+                const color = swatch.dataset.color || '#2563eb';
+                showcaseDoc.style.setProperty('--doc-accent', color);
             });
         });
     }
