@@ -565,20 +565,21 @@
     left: 0;
     width: 100vw;
     height: 100vh;
-    background: rgba(15, 23, 42, 0.4);
+    background: rgba(15, 23, 42, 0.55);
     backdrop-filter: blur(8px);
-    display: flex;
+    display: none;
     align-items: center;
     justify-content: center;
-    z-index: var(--z-modal);
+    z-index: 99999;
     opacity: 0;
     pointer-events: none;
     transition: opacity var(--transition-base);
 }
 
 .custom-modal-overlay.active {
-    opacity: 1;
-    pointer-events: auto;
+    display: flex !important;
+    opacity: 1 !important;
+    pointer-events: auto !important;
 }
 
 .custom-modal-card {
@@ -595,8 +596,8 @@
 }
 
 .custom-modal-overlay.active .custom-modal-card {
-    transform: translateY(0) scale(1);
-    opacity: 1;
+    transform: translateY(0) scale(1) !important;
+    opacity: 1 !important;
 }
 
 .custom-modal-header {
