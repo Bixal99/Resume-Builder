@@ -22,16 +22,16 @@
             <span class="contact-item">Location: {{ resume.address }}</span>
             {% endif %}
             {% if resume.linkedin and (resume.linkedin | format_url) %}
-            <span class="contact-item">LinkedIn: <a href="{{ resume.linkedin | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.linkedin }}</a></span>
+            <span class="contact-item"><a href="{{ resume.linkedin | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.linkedin_label or "LinkedIn" }}</a></span>
             {% endif %}
             {% if resume.github and (resume.github | format_url) %}
-            <span class="contact-item">GitHub: <a href="{{ resume.github | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.github }}</a></span>
+            <span class="contact-item"><a href="{{ resume.github | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.github_label or "GitHub" }}</a></span>
             {% endif %}
             {% if resume.portfolio and (resume.portfolio | format_url) %}
-            <span class="contact-item">Portfolio: <a href="{{ resume.portfolio | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.portfolio }}</a></span>
+            <span class="contact-item"><a href="{{ resume.portfolio | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.portfolio_label or "Portfolio" }}</a></span>
             {% endif %}
             {% if resume.website and (resume.website | format_url) %}
-            <span class="contact-item">Website: <a href="{{ resume.website | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.website }}</a></span>
+            <span class="contact-item"><a href="{{ resume.website | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.website_label or "Website" }}</a></span>
             {% endif %}
         </div>
         {% endif %}

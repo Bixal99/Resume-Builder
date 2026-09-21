@@ -444,7 +444,7 @@
     flex: 1;
     overflow: auto;
     display: flex;
-    justify-content: center;
+    justify-content: safe center;
     align-items: flex-start;
     padding: var(--space-4);
 }
@@ -454,6 +454,7 @@
     /* Dimensions are set dynamically by JS for Auto-Fit */
     width: 210mm;
     min-height: 297mm;
+    overflow-x: hidden;
     transition: width 0.2s ease, min-height 0.2s ease;
 }
 
@@ -468,6 +469,7 @@
     box-shadow: var(--shadow-xl);
     border-radius: var(--radius-sm);
     transform-origin: top left;
+    overflow-x: hidden;
     transition: transform 0.2s ease;
 }
 

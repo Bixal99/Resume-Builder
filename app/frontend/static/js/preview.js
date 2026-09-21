@@ -255,7 +255,9 @@ const PreviewManager = (() => {
                 void el.offsetWidth;
                 el.classList.add('template-field-highlight');
                 try {
-                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                    el.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'start' });
+                    if (doc.documentElement) doc.documentElement.scrollLeft = 0;
+                    if (doc.body) doc.body.scrollLeft = 0;
                 } catch (e) {}
                 setTimeout(() => {
                     if (el) el.classList.remove('template-field-highlight');
@@ -290,6 +292,11 @@ const PreviewManager = (() => {
                 doc.open();
                 doc.write(html);
                 doc.close();
+
+                try {
+                    if (doc.documentElement) doc.documentElement.scrollLeft = 0;
+                    if (doc.body) doc.body.scrollLeft = 0;
+                } catch (e) {}
 
                 attachExternalLinkDelegation(doc);
 

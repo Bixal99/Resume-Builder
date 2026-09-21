@@ -117,6 +117,8 @@
             gap: 2px 14px !important;
             margin-bottom: 8px !important;
             padding-bottom: 6px !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
         }
         .header-content {
             display: contents !important;
@@ -125,11 +127,15 @@
             grid-column: 1 / 2 !important;
             grid-row: 1 !important;
             padding-right: 0 !important;
+            word-break: break-word !important;
+            overflow-wrap: anywhere !important;
         }
         .resume-title {
             grid-column: 1 / 2 !important;
             grid-row: 2 !important;
             padding-right: 0 !important;
+            word-break: break-word !important;
+            overflow-wrap: anywhere !important;
         }
         .header-photo {
             grid-column: 2 / 3 !important;
@@ -157,20 +163,26 @@
         .contact-info {
             grid-column: 1 / -1 !important;
             width: 100% !important;
+            max-width: 100% !important;
+            box-sizing: border-box !important;
             display: flex !important;
-            flex-wrap: nowrap !important;
+            flex-wrap: wrap !important;
             align-items: center !important;
-            gap: 2px 8px !important;
+            gap: 3px 8px !important;
             font-size: 8pt !important;
             margin-top: 4px !important;
+            word-break: break-word !important;
+            overflow-wrap: anywhere !important;
         }
         .contact-item {
             display: inline-flex !important;
             align-items: center !important;
-            white-space: nowrap !important;
+            white-space: normal !important;
             gap: 3.5px !important;
             line-height: 1.3 !important;
             font-size: 8pt !important;
+            word-break: break-word !important;
+            overflow-wrap: anywhere !important;
         }
         .contact-item .icon,
         .contact-item svg {
