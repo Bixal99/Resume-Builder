@@ -639,8 +639,10 @@ const PreviewManager = (() => {
 
         function renderDocProjectEntry(proj) {
             const title = escapeDocHtml(proj.title || '');
-            const gh = proj.github_url ? `<a href="${escapeDocHtml(formatExternalUrl(proj.github_url))}" class="entry-link" target="_blank" rel="noopener noreferrer">GitHub</a>` : '';
-            const live = proj.live_url ? `<a href="${escapeDocHtml(formatExternalUrl(proj.live_url))}" class="entry-link" target="_blank" rel="noopener noreferrer">Live</a>` : '';
+            const ghUrl = formatExternalUrl(proj.github_url);
+            const gh = ghUrl ? `<a href="${escapeDocHtml(ghUrl)}" class="entry-link" target="_blank" rel="noopener noreferrer">GitHub</a>` : '';
+            const liveUrl = formatExternalUrl(proj.live_url);
+            const live = liveUrl ? `<a href="${escapeDocHtml(liveUrl)}" class="entry-link" target="_blank" rel="noopener noreferrer">Live</a>` : '';
             const dateSpan = proj.date ? `<div class="entry-right"><span class="entry-date">${escapeDocHtml(proj.date)}</span></div>` : '';
             const descHtml = proj.description ? `<div class="entry-description">${formatBulletsToHtml(proj.description)}</div>` : '';
             const techTags = Array.isArray(proj.technologies) && proj.technologies.length > 0

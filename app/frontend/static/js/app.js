@@ -2,6 +2,34 @@
 // Main Application Entry Point
 // =============================================================================
 
+// Ensure modal controllers are globally defined immediately
+window.openDownloadModal = function() {
+    const modal = document.getElementById('download-modal-overlay');
+    if (modal) {
+        modal.classList.add('active');
+        modal.style.display = 'flex';
+        modal.style.opacity = '1';
+        modal.style.pointerEvents = 'auto';
+        const card = modal.querySelector('.custom-modal-card');
+        if (card) {
+            card.style.transform = 'translateY(0) scale(1)';
+            card.style.opacity = '1';
+        }
+        const status = document.getElementById('modal-download-status');
+        if (status) status.textContent = '';
+    }
+};
+
+window.closeDownloadModal = function() {
+    const modal = document.getElementById('download-modal-overlay');
+    if (modal) {
+        modal.classList.remove('active');
+        modal.style.display = 'none';
+        modal.style.opacity = '0';
+        modal.style.pointerEvents = 'none';
+    }
+};
+
 document.addEventListener('DOMContentLoaded', () => {
     // Load saved state from localStorage
     ResumeStore.load();
@@ -591,10 +619,16 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('format-card-both')?.addEventListener('click', () => executeDownloadBoth());
     }
 
-    // --- Header Download Button (Opens Modal) ---
-    document.getElementById('btn-download-pdf')?.addEventListener('click', (e) => {
-        e.preventDefault();
-        openDownloadModal();
+    // --- Header & Section Download Buttons (Opens Modal) ---
+    ['btn-download-pdf', 'btn-download-cv', 'download-btn'].forEach(id => {
+        const btn = document.getElementById(id);
+        if (btn) {
+            btn.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                window.openDownloadModal();
+            });
+        }
     });
 
     // --- Preview Toggle (Mobile) ---
