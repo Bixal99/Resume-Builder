@@ -8,8 +8,8 @@ const DownloadComponent = (() => {
         container.innerHTML = `
             <div class="download-section">
                 <div class="download-icon">📥</div>
-                <h2 class="form-section-title" style="text-align:center;">Download Your Resume</h2>
-                <p class="form-section-subtitle" style="text-align:center;">Choose your page size and download as PDF.</p>
+                <h2 class="form-section-title" style="text-align:center;">Download Your CV</h2>
+                <p class="form-section-subtitle" style="text-align:center;">Choose your page size and export in your preferred format.</p>
 
                 <div class="download-options">
                     <div class="page-size-option ${pageSize === 'A4' ? 'selected' : ''}" data-size="A4">
@@ -25,7 +25,7 @@ const DownloadComponent = (() => {
                 <div style="display: flex; gap: 12px; justify-content: center; flex-wrap: wrap; margin-top: var(--space-4);">
                     <button class="btn btn-primary btn-lg" id="download-btn">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-                        Download PDF
+                        Download CV
                     </button>
                     <button class="btn btn-secondary btn-lg" id="download-json-btn" title="Download Standard JSON Schema Backup">
                         <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
@@ -93,7 +93,7 @@ const DownloadComponent = (() => {
                 showToast('PDF download failed', 'error');
             } finally {
                 btn.disabled = false;
-                btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download PDF / DOCX';
+                btn.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> Download CV';
             }
         });
     }
