@@ -80,8 +80,9 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
                 if key in seen_items:
                     continue
                 seen_items.add(key)
-                anchor = item["anchor"] or "Link"
-                ctx = f" (Context: '{item['context']}')" if item["context"] and item["context"] != anchor else ""
+                anchor = (item["anchor"] or "Link").replace("'", " ").strip()
+                clean_ctx = (item["context"] or "").replace("'", " ").strip()
+                ctx = f" (Context: '{clean_ctx}')" if clean_ctx and clean_ctx != anchor else ""
                 text += f"- Anchor: '{anchor}'{ctx} -> Target URL: {item['uri']}\n"
             
         return text
@@ -845,9 +846,39 @@ def parse_raw_languages(raw_text: str) -> list[dict]:
     return langs
 
 
+def extract_hyperlinks_from_text(text: str) -> list[dict]:
+    """Robustly extracts embedded hyperlinks (anchor, context, uri) from formatted resume text."""
+    links = []
+    if not text or "--- EMBEDDED HYPERLINKS IN RESUME ---" not in text:
+        return links
+    block = text.split("--- EMBEDDED HYPERLINKS IN RESUME ---", 1)[1]
+    for line in block.splitlines():
+        line = line.strip()
+        if not line.startswith("- Anchor:"):
+            continue
+        url_match = re.search(r'->\s*Target URL:\s*(\S+)', line)
+        if not url_match:
+            continue
+        uri = url_match.group(1).strip()
+        
+        anchor = ""
+        anchor_match = re.search(r"- Anchor:\s*'([^']*)'", line)
+        if anchor_match:
+            anchor = anchor_match.group(1).strip()
+        
+        context = ""
+        ctx_match = re.search(r"\(Context:\s*'([^']*)'\)", line)
+        if ctx_match:
+            context = ctx_match.group(1).strip()
+            
+        links.append({"anchor": anchor, "context": context, "uri": uri})
+    return links
+
+
 def extract_contact_info_deterministic(text: str) -> dict:
     """
-    Extracts core contact details deterministically in ~1-5ms using regex and hyperlinks.
+    Blazing fast, zero-dependency regex and rule-based extractor for core contact details.
+    Runs in ~2ms. Used for instant pre-population of the resume template.
     """
     info = {
         "first_name": "",
@@ -869,37 +900,99 @@ def extract_contact_info_deterministic(text: str) -> dict:
     if email_m:
         info["email"] = email_m.group(0).strip()
 
-    # 2. Phone
-    phone_m = re.search(r'(?:(?:\+|00)\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?)?\d{3,4}[\s.-]?\d{3,4}\b', text)
+    # 2. Phone (supports international +, dashes, spaces, and 7-15 digit numbers)
+    # Strip emails first so digits inside email addresses don't hijack phone detection
+    text_no_emails = re.sub(r'[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}', '', text[:600])
+    phone_m = re.search(r'(?:\+?\d{1,3}[\s.-]?)?(?:\(?\d{2,4}\)?[\s.-]?)?\d{3,4}[\s.-]?\d{3,4}\b|\b\d{8,14}\b', text_no_emails)
     if phone_m:
         val = phone_m.group(0).strip()
         if len(re.sub(r'\D', '', val)) >= 7:
             info["phone"] = val
 
-    # 3. URLs & Links (both text patterns & embedded link annotations)
+    # 3. URLs & Links in raw text lines
     lines = [l.strip() for l in text.split('\n') if l.strip()]
     for l in lines:
         if "linkedin.com" in l.lower() and not info["linkedin"]:
-            m = re.search(r'(?:https?:\/\/)?(?:www\.)?linkedin\.com\/in\/[A-Za-z0-9_-]+(?:\/)?', l, re.I)
+            m = re.search(r'(?:https?:\/\/)?(?:www\.)?linkedin\.com\/(?:in|company)\/[A-Za-z0-9_.-]+(?:\/)?', l, re.I)
             if m:
                 info["linkedin"] = m.group(0) if m.group(0).startswith("http") else f"https://{m.group(0)}"
         if "github.com" in l.lower() and not info["github"]:
-            m = re.search(r'(?:https?:\/\/)?(?:www\.)?github\.com\/[A-Za-z0-9_-]+(?:\/)?', l, re.I)
+            m = re.search(r'(?:https?:\/\/)?(?:www\.)?github\.com\/[A-Za-z0-9_.-]+(?:\/)?', l, re.I)
             if m:
                 info["github"] = m.group(0) if m.group(0).startswith("http") else f"https://{m.group(0)}"
+        if any(dom in l.lower() for dom in [".vercel.app", ".github.io", ".netlify.app", ".dev", ".me", ".pages.dev"]):
+            m = re.search(r'(?:https?:\/\/)?([A-Za-z0-9_.-]+\.(?:vercel\.app|github\.io|netlify\.app|me|dev|pages\.dev))(?:\/[^\s]*)?', l, re.I)
+            if m and not info["portfolio"]:
+                info["portfolio"] = m.group(0) if m.group(0).startswith("http") else f"https://{m.group(0)}"
 
-    # Parse embedded hyperlinks block if present
-    if "--- EMBEDDED HYPERLINKS IN RESUME ---" in text:
-        for m in re.finditer(r"- Anchor:\s*'([^']*)'(?:\s*\(Context:\s*'([^']*)'\))?\s*->\s*Target URL:\s*(\S+)", text):
-            uri = m.group(3).strip()
-            if "linkedin.com" in uri.lower() and not info["linkedin"]:
+    # 4. Embedded Hyperlinks
+    embedded_parsed = extract_hyperlinks_from_text(text)
+    for item in embedded_parsed:
+        uri = item["uri"]
+        anchor = item["anchor"]
+        ctx = item["context"]
+        
+        # Check if anchor is itself a full URL (e.g. user typed github.com/user or linkedin.com/in/...)
+        effective_url = uri
+        if "linkedin.com" in anchor.lower():
+            effective_url = anchor if anchor.startswith("http") else f"https://{anchor}"
+        elif "github.com" in anchor.lower():
+            effective_url = anchor if anchor.startswith("http") else f"https://{anchor}"
+        elif any(d in anchor.lower() for d in [".vercel.app", ".github.io", ".netlify.app", ".dev", ".me", ".pages.dev"]):
+            effective_url = anchor if anchor.startswith("http") else f"https://{anchor}"
+
+        # Helper to check for dummy URLs like https://github/
+        def is_dummy_candidate(u: str) -> bool:
+            clean = u.strip().lower()
+            if clean in ("https://linkedin/", "https://linkedin", "https://github/", "https://github", "https://live/", "https://live"):
+                return True
+            try:
+                from urllib.parse import urlparse
+                p = urlparse(clean if "://" in clean else f"https://{clean}")
+                net = p.netloc or p.path.split('/')[0]
+                if "." not in net:
+                    return True
+            except Exception:
+                pass
+            return False
+
+        # LinkedIn detection
+        if ("linkedin.com" in effective_url.lower() or "linkedin" in anchor.lower()) and not info["linkedin"]:
+            if "linkedin.com" in effective_url.lower():
+                info["linkedin"] = effective_url
+            elif "linkedin.com" in uri.lower():
                 info["linkedin"] = uri
-            elif "github.com" in uri.lower() and not info["github"] and uri.count("/") <= 4:
-                info["github"] = uri
-            elif any(k in uri.lower() for k in ["portfolio", "github.io", "vercel.app", "netlify.app", "me", "dev"]) and not info["portfolio"] and "linkedin" not in uri and "github.com" not in uri:
-                info["portfolio"] = uri
 
-    # 4. Name and Title extraction from header lines (first 1-6 lines)
+        # GitHub detection (user profile)
+        if ("github.com" in effective_url.lower() or "github" in anchor.lower()) and not info["github"]:
+            target_gh = effective_url if "github.com" in effective_url.lower() else uri
+            if "github.com" in target_gh.lower():
+                segs = [s for s in target_gh.split('/') if s and s not in ('http:', 'https:', 'github.com', 'www.github.com')]
+                if len(segs) <= 1:
+                    info["github"] = target_gh
+
+        # Portfolio / Personal Website detection
+        is_port_candidate = (
+            "portfolio" in anchor.lower() or 
+            "portfolio" in ctx.lower() or 
+            any(d in effective_url.lower() for d in [".vercel.app", ".github.io", ".netlify.app", ".pages.dev", ".me", ".dev"]) or
+            anchor.lower() in ("portfolio", "website", "my website", "personal website", "portfolio website")
+        )
+        if is_port_candidate and not info["portfolio"] and not is_dummy_candidate(effective_url):
+            if "linkedin.com" not in effective_url.lower() and "github.com" not in effective_url.lower() and not effective_url.startswith("mailto:") and not effective_url.startswith("tel:"):
+                info["portfolio"] = effective_url
+
+    # General GitHub profile fallback if only repo links existed in embedded links
+    if not info["github"]:
+        for item in embedded_parsed:
+            u = item["uri"]
+            if "github.com" in u.lower():
+                segs = [s for s in u.split('/') if s and s not in ('http:', 'https:', 'github.com', 'www.github.com')]
+                if segs:
+                    info["github"] = f"https://github.com/{segs[0]}"
+                    break
+
+    # 5. Name and Title extraction from header lines (first 1-6 lines)
     header_candidates = []
     for l in lines[:6]:
         if any(w in l.lower() for w in ["@", "http", "curriculum", "resume", "experience", "education", "summary", "skills"]):
@@ -916,8 +1009,8 @@ def extract_contact_info_deterministic(text: str) -> dict:
         if len(header_candidates) > 1:
             info["professional_title"] = header_candidates[1]
 
-    # 5. Location / Address (e.g. "City, State", "City, Country", or "Remote")
-    loc_m = re.search(r'\b([A-Za-z\s]+,\s*(?:[A-Z]{2}|[A-Za-z\s]{3,}))\b', text[:500])
+    # 6. Location / Address (single line, e.g. "City, State", "City, Country", or "Remote")
+    loc_m = re.search(r'\b([A-Za-z ]{2,30},\s*(?:[A-Za-z ]{2,30}))', text[:500])
     if loc_m:
         cand = loc_m.group(1).strip()
         if not any(w in cand.lower() for w in ["university", "college", "school", "company", "inc", "ltd"]):
@@ -1379,14 +1472,10 @@ def post_process_json(parsed_json, raw_text: str = None):
     dummy_words = {"linkedin", "github", "portfolio", "website", "live", "demo", "link", "url", "site", "web", "none", "null", "n/a", "na"}
     
     # Extract any embedded hyperlinks found in raw_text
-    embedded_links: list[tuple[str, str, str]] = []  # (anchor, context, url)
-    if raw_text and "--- EMBEDDED HYPERLINKS IN RESUME ---" in raw_text:
-        for m in re.finditer(r"- Anchor:\s*'([^']*)'(?:\s*\(Context:\s*'([^']*)'\))?\s*->\s*Target URL:\s*(\S+)", raw_text):
-            anchor = (m.group(1) or "").strip().lower()
-            ctx = (m.group(2) or "").strip().lower()
-            url = m.group(3).strip()
-            if url:
-                embedded_links.append((anchor, ctx, url))
+    embedded_raw_dicts = extract_hyperlinks_from_text(raw_text) if raw_text else []
+    embedded_links: list[tuple[str, str, str]] = [
+        (d["anchor"].lower(), d["context"].lower(), d["uri"]) for d in embedded_raw_dicts
+    ]
 
     # Also detect explicit raw URLs in text if any were not in embedded_links
     if raw_text:
@@ -1394,12 +1483,22 @@ def post_process_json(parsed_json, raw_text: str = None):
             raw_gh = gh_m.group(1).rstrip(",;.)")
             if not any(u == raw_gh for _, _, u in embedded_links):
                 embedded_links.append(("github", "", raw_gh))
+        for li_m in re.finditer(r"(https?://(?:www\.)?linkedin\.com/(?:in|company)/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)?)", raw_text, re.IGNORECASE):
+            raw_li = li_m.group(1).rstrip(",;.)")
+            if not any(u == raw_li for _, _, u in embedded_links):
+                embedded_links.append(("linkedin", "", raw_li))
+        for port_m in re.finditer(r"(https?://[A-Za-z0-9_.-]+\.(?:vercel\.app|github\.io|netlify\.app|pages\.dev|dev|me)(?:/[^\s]*)?)", raw_text, re.IGNORECASE):
+            raw_port = port_m.group(1).rstrip(",;.)")
+            if not any(u == raw_port for _, _, u in embedded_links):
+                embedded_links.append(("portfolio", "", raw_port))
 
     def is_bad_url(u: str) -> bool:
         if not u:
             return True
         u_clean = str(u).strip().lower()
         if u_clean in dummy_words:
+            return True
+        if u_clean in ("https://linkedin/", "https://linkedin", "https://github/", "https://github", "https://live/", "https://live"):
             return True
         if "." not in u_clean and "/" not in u_clean and not u_clean.startswith("mailto:") and not u_clean.startswith("tel:"):
             return True
@@ -1411,48 +1510,78 @@ def post_process_json(parsed_json, raw_text: str = None):
         try:
             from urllib.parse import urlparse
             p = urlparse(u).path.strip("/")
-            return [seg for seg in p.split("/") if seg]
+            return [seg for seg in p.split("/") if seg and seg != "tab=repositories"]
         except Exception:
             return []
 
-    # Identify project titles to avoid stealing project links for header contact info
-    proj_list = parsed_json.get("projects") if isinstance(parsed_json.get("projects"), list) else []
-    proj_titles = [str(p.get("title") or "").strip().lower() for p in proj_list if isinstance(p, dict)]
+    # Clean Contact URLs (General & Robust)
+    # 1. LinkedIn
+    li_val = str(parsed_json.get("linkedin", "") or "").strip()
+    if is_bad_url(li_val):
+        recovered = next((u for a, c, u in embedded_links if not is_bad_url(u) and "linkedin.com" in u.lower()), "")
+        if not recovered:
+            recovered = next((a if a.startswith("http") else f"https://{a}" for a, c, u in embedded_links if not is_bad_url(a) and "linkedin.com" in a), "")
+        if recovered:
+            parsed_json["linkedin"] = recovered
+    elif not li_val.startswith("http://") and not li_val.startswith("https://"):
+        parsed_json["linkedin"] = f"https://{li_val}"
 
-    # Clean Contact URLs
-    for field in ["linkedin", "github", "portfolio", "website"]:
-        val = str(parsed_json.get(field, "") or "").strip()
-        if field == "linkedin":
-            if is_bad_url(val):
-                recovered = next((u for a, c, u in embedded_links if "linkedin.com" in u.lower()), "")
-                if recovered:
-                    parsed_json["linkedin"] = recovered
-        elif field == "github":
-            if is_bad_url(val) or len(get_gh_segments(val)) > 1:
-                recovered = next((u for a, c, u in embedded_links if len(get_gh_segments(u)) == 1 and not any(pt and pt in c for pt in proj_titles)), "")
-                if not recovered:
-                    recovered = next((u for a, c, u in embedded_links if "github.com" in u.lower() and not any(pt and pt in c for pt in proj_titles)), "")
-                if not recovered:
-                    first_gh = next((u for a, c, u in embedded_links if "github.com" in u.lower()), "")
-                    if first_gh:
-                        segs = get_gh_segments(first_gh)
-                        if segs:
-                            recovered = f"https://github.com/{segs[0]}"
-                if recovered:
-                    parsed_json["github"] = recovered
-        elif field in ("portfolio", "website"):
-            if is_bad_url(val):
-                recovered = next((u for a, c, u in embedded_links if (field in a or field in c or ("linkedin.com" not in u.lower() and "github.com" not in u.lower() and not u.startswith("mailto:") and not u.startswith("tel:"))) and not any(pt and pt in c for pt in proj_titles)), "")
-                if recovered:
-                    parsed_json[field] = recovered
+    # 2. GitHub Profile (1 path segment, e.g. github.com/username)
+    gh_val = str(parsed_json.get("github", "") or "").strip()
+    if is_bad_url(gh_val) or len(get_gh_segments(gh_val)) > 1:
+        recovered = next((u for a, c, u in embedded_links if not is_bad_url(u) and len(get_gh_segments(u)) == 1), "")
+        if not recovered:
+            recovered = next((a if a.startswith("http") else f"https://{a}" for a, c, u in embedded_links if not is_bad_url(a) and "github.com" in a and len(get_gh_segments(a)) == 1), "")
+        if not recovered:
+            # Fallback to root profile from any github URL found
+            for a, c, u in embedded_links:
+                if not is_bad_url(u):
+                    segs = get_gh_segments(u)
+                    if segs:
+                        recovered = f"https://github.com/{segs[0]}"
+                        break
+        if recovered:
+            parsed_json["github"] = recovered
+    elif not gh_val.startswith("http://") and not gh_val.startswith("https://"):
+        parsed_json["github"] = f"https://{gh_val}"
+
+    # 3. Portfolio
+    port_val = str(parsed_json.get("portfolio", "") or "").strip()
+    if is_bad_url(port_val):
+        recovered = next((u for a, c, u in embedded_links if not is_bad_url(u) and ("portfolio" in a or any(k in u.lower() for k in [".vercel.app", ".github.io", ".netlify.app", ".pages.dev", ".me", ".dev"])) and "linkedin" not in u.lower() and "github" not in u.lower() and not u.startswith("mailto:") and not u.startswith("tel:")), "")
+        if not recovered:
+            recovered = next((a if a.startswith("http") else f"https://{a}" for a, c, u in embedded_links if not is_bad_url(a) and any(k in a for k in [".vercel.app", ".github.io", ".netlify.app", ".pages.dev", ".me", ".dev"])), "")
+        if not recovered:
+            recovered = next((u for a, c, u in embedded_links if not is_bad_url(u) and "linkedin" not in u.lower() and "github" not in u.lower() and not u.startswith("mailto:") and not u.startswith("tel:")), "")
+        if recovered:
+            parsed_json["portfolio"] = recovered
+    elif not port_val.startswith("http://") and not port_val.startswith("https://"):
+        parsed_json["portfolio"] = f"https://{port_val}"
+
+    # 4. Website (Must not duplicate portfolio)
+    web_val = str(parsed_json.get("website", "") or "").strip()
+    cur_port = str(parsed_json.get("portfolio", "") or "").strip()
+    if is_bad_url(web_val) or web_val.rstrip("/") == cur_port.rstrip("/"):
+        recovered = next((u for a, c, u in embedded_links if not is_bad_url(u) and u.rstrip("/") != cur_port.rstrip("/") and ("website" in a or "site" in a or "web" in a) and "linkedin" not in u.lower() and "github" not in u.lower() and not u.startswith("mailto:") and not u.startswith("tel:")), "")
+        if recovered and recovered.rstrip("/") != cur_port.rstrip("/"):
+            parsed_json["website"] = recovered
+        else:
+            parsed_json["website"] = ""
+    elif web_val and not web_val.startswith("http://") and not web_val.startswith("https://"):
+        parsed_json["website"] = f"https://{web_val}"
 
     # Clean Project URLs
+    proj_list = parsed_json.get("projects") if isinstance(parsed_json.get("projects"), list) else []
     if proj_list:
         all_gh_links = [(a, c, u) for a, c, u in embedded_links if "github.com" in u.lower() or a in ("github", "repo", "code", "git", "source")]
         all_live_links = [(a, c, u) for a, c, u in embedded_links if a in ("live", "demo", "app", "site", "preview", "link", "view", "url", "web") or ("github.com" not in u.lower() and "linkedin.com" not in u.lower() and not u.startswith("mailto:") and not u.startswith("tel:"))]
 
         assigned_gh_urls = set()
         assigned_live_urls = set()
+        if parsed_json.get("github"):
+            assigned_gh_urls.add(parsed_json["github"])
+        if parsed_json.get("portfolio"):
+            assigned_live_urls.add(parsed_json["portfolio"])
 
         # Step 1: Record existing valid URLs
         for proj in proj_list:
@@ -1624,7 +1753,7 @@ def stream_provider_chat(provider: dict, model_name: str, system_prompt: str, us
                 {"role": "user", "content": user_prompt}
             ],
             "temperature": 0.1,
-            "max_tokens": 6000,
+            "max_tokens": 3500,
             "response_format": {"type": "json_object"},
             "stream": True
         }
@@ -1656,7 +1785,7 @@ def stream_provider_chat(provider: dict, model_name: str, system_prompt: str, us
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": user_prompt},
             ],
-            max_tokens=6000,
+            max_tokens=3500,
             temperature=0.1,
             stream=True,
         )
@@ -2091,6 +2220,19 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detecte
     yield {"event": "status", "stage": 2, "label": "Processing with High-Speed Structured Extraction Engine...", "pct": 45}
     det_dict = parse_resume_deterministic(text, photo=photo, detected_font=detected_font)
     validated = ResumeData(**det_dict)
+
+    # Emit all contact fields so frontend form and preview receive them
+    for f in ["first_name", "last_name", "professional_title", "email", "phone", "address", "linkedin", "github", "portfolio", "website"]:
+        v = getattr(validated, f, None)
+        if v and str(v).strip():
+            field_label = f.replace('_', ' ').title()
+            yield {
+                "event": "field_update",
+                "field": f,
+                "value": v,
+                "label": f"Placed {field_label}",
+                "pct": 50
+            }
 
     # Emit skills
     if validated.skills:
