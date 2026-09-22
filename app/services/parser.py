@@ -782,18 +782,27 @@ def parse_raw_certifications(raw_text: str) -> list[dict]:
         return []
     certs = []
     seen = set()
-    for line in body.split('\n'):
-        l_clean = re.sub(r'^[•\-\*·\d\.\)]\s*', '', line).strip()
-        if not l_clean or l_clean.upper() in ('CERTIFICATIONS', 'CERTIFICATES', 'LICENSES', 'COURSES'):
-            continue
+    raw_lines = [line.strip() for line in body.split('\n') if line.strip()]
+    lines = []
+    for l in raw_lines:
+        l_clean = re.sub(r'^[•\-\*·\d\.\)]\s*', '', l).strip()
+        if l_clean and l_clean.upper() not in ('CERTIFICATIONS', 'CERTIFICATES', 'LICENSES', 'COURSES'):
+            lines.append(l_clean)
 
-        # If this entire line is just a date token (e.g. "9 sept", "sept", "2024"):
-        if DATE_TOKEN_RE.match(l_clean):
+    KNOWN_ISSUERS = {'deloitte', 'worldclass', 'coursera', 'udemy', 'google', 'aws', 'amazon', 'microsoft', 'ibm', 'meta', 'cisco', 'oracle', 'university', 'college', 'school', 'academy', 'institute', 'foundation', 'edx', 'linkedin learning', 'stanford'}
+
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        i += 1
+
+        # If this entire line is just a date token (e.g. "9 sept", "sept", "September 8, 2026"):
+        if DATE_TOKEN_RE.match(line):
             if certs and not certs[-1].get("date"):
-                certs[-1]["date"] = l_clean
+                certs[-1]["date"] = line
             continue
 
-        c_name = l_clean
+        c_name = line
         c_issuer = ""
         c_date = ""
 
@@ -810,6 +819,15 @@ def parse_raw_certifications(raw_text: str) -> list[dict]:
             c_issuer = m_dash.group(2).strip()
             if not c_date and m_dash.group(3):
                 c_date = m_dash.group(3).strip()
+
+        # Check if this line is actually an issuer for the preceding certificate
+        next_is_date = (i < len(lines) and bool(DATE_TOKEN_RE.match(lines[i])))
+        is_issuer_word = any(k in c_name.lower() for k in KNOWN_ISSUERS)
+        if certs and not certs[-1]["issuer"] and (next_is_date or is_issuer_word):
+            certs[-1]["issuer"] = c_name
+            if c_date and not certs[-1]["date"]:
+                certs[-1]["date"] = c_date
+            continue
 
         # Reject if c_name is empty or is purely a date token
         if not c_name or DATE_TOKEN_RE.match(c_name):
@@ -1460,9 +1478,16 @@ def post_process_json(parsed_json, raw_text: str = None):
                 if existing:
                     if not existing.get("date") and fc.get("date"):
                         existing["date"] = fc["date"]
+                    if not existing.get("issuer") and fc.get("issuer"):
+                        existing["issuer"] = fc["issuer"]
                 elif fc_key not in seen_certs and not DATE_TOKEN_RE.match(fc["name"]):
-                    seen_certs.add(fc_key)
-                    clean_certs.append(fc)
+                    if not any(fc_key == (x.get("issuer") or "").lower() for x in clean_certs):
+                        seen_certs.add(fc_key)
+                        clean_certs.append(fc)
+
+    # Filter out any duplicate certificate whose name is actually an issuer of another certificate
+    all_issuers = {str(c.get("issuer", "")).strip().lower() for c in clean_certs if c.get("issuer")}
+    clean_certs = [c for c in clean_certs if c.get("name") and str(c.get("name")).strip().lower() not in all_issuers]
 
     if clean_certs:
         parsed_json["certifications"] = clean_certs
