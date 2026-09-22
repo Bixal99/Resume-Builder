@@ -331,7 +331,14 @@ CRITICAL PARSING RULES:
        {"name": "Arabic", "fluency": "Beginner"}
      ]
    - NEVER omit or drop any language from the resume!
-12. Output raw JSON only. Do not wrap in markdown or explanation.
+12. SKILLS & CATEGORIES (CRITICAL):
+    - Extract skills into the "skills" array with their appropriate category:
+      * 'name': The specific skill or technology name (e.g. "Python", "React.js", "Docker", "PostgreSQL").
+      * 'category': The category heading under which it appears (e.g. "Technical Skills", "Frameworks & Libraries", "Tools & Platforms").
+    - NEVER, UNDER ANY CIRCUMSTANCES, extract section or sub-section header fragments as a skill name!
+      * For example: "Frameworks &", "Tools &", "Libraries", "Platforms", "Technical Skills", "Programming Languages" are CATEGORY HEADERS or header fragments, NEVER individual skills!
+      * NEVER include words ending with "&" as a skill!
+13. Output raw JSON only. Do not wrap in markdown or explanation.
 """.replace("__SCHEMA__", schema_json)
     user_prompt = f"Here is the resume text:\n\n{text}"
     return system_prompt, user_prompt
@@ -385,6 +392,56 @@ def normalize_skill_category(cat: str) -> str:
     return str(cat).strip().rstrip(":")
 
 
+DISALLOWED_SKILL_NAMES = {
+    # Main section headers
+    "skills", "technical skills", "technical proficiencies", "technical", "core competencies",
+    "soft skills", "hard skills", "proficiencies", "competencies", "qualifications",
+    # Sub-category headers and fragments
+    "frameworks & libraries", "frameworks and libraries", "frameworks &", "frameworks and", "frameworks",
+    "framworks & libraries", "framworks &", "framworks", "libraries & frameworks", "libraries",
+    "tools & platforms", "tools and platforms", "tools &", "tools and", "tools", "platforms",
+    "tools & technologies", "tools and technologies", "technologies & tools", "technologies",
+    "programming languages", "programming language", "programming", "languages", "language",
+    "databases & cloud", "databases", "cloud & devops", "cloud platforms", "devops",
+    "web technologies", "developer tools", "operating systems", "methodologies",
+    "frontend", "backend", "full stack", "data science", "machine learning & ai",
+    # Resume structural words
+    "summary", "profile", "professional summary", "about me", "experience", "work experience",
+    "education", "projects", "certifications", "certificates", "awards", "contact", "links",
+    "portfolio", "website", "github", "linkedin", "email", "phone", "address"
+}
+
+
+def is_valid_skill_name(name: str) -> bool:
+    if not name:
+        return False
+    s = name.strip()
+    if len(s) == 0:
+        return False
+    if len(s) == 1 and s.upper() not in ("C", "R"):
+        return False
+    if re.match(r'^\d+$', s) or re.match(r'^(19|20)\d{2}$', s):
+        return False
+    if s.endswith("&") or s.startswith("&"):
+        return False
+    if s.endswith(":") or s.startswith(":"):
+        return False
+    if s.endswith("/") or s.startswith("/"):
+        return False
+    if s.endswith("-") or s.startswith("-"):
+        return False
+    s_low = s.rstrip(":").strip().lower()
+    if s_low in DISALLOWED_SKILL_NAMES:
+        return False
+    if s_low.endswith(" &") or s_low.endswith(" and"):
+        return False
+    if s_low.startswith("& ") or s_low.startswith("and "):
+        return False
+    if re.match(r'^(frameworks?|tools?|libraries|platforms?|technologies|languages?)\s*(&|and)?$', s_low):
+        return False
+    return True
+
+
 def build_skill_category_map(raw_text: str):
     """
     Scans the raw resume text for explicit skills section headers and subcategories.
@@ -406,10 +463,12 @@ def build_skill_category_map(raw_text: str):
     sec_content = extract_section_raw(raw_text, r'TECHNICAL\s+SKILLS|TECHNICAL\s+PROFICIENCIES|CORE\s+COMPETENCIES|SKILLS') or raw_text
     
     current_cat = None
-    for line in sec_content.split('\n'):
-        line_s = line.strip()
-        if not line_s:
-            continue
+    lines = [line.strip() for line in sec_content.split('\n') if line.strip()]
+    i = 0
+    while i < len(lines):
+        line_s = lines[i]
+        i += 1
+        
         # Stop parsing if another major section header is hit
         clean_header_candidate = line_s.rstrip(":").strip()
         if any(re.match(rf'^{h}$', clean_header_candidate, re.IGNORECASE) for h in [
@@ -419,12 +478,33 @@ def build_skill_category_map(raw_text: str):
             current_cat = None
             break
 
+        # Check if line ends with '&' or is a known category fragment (e.g. "Frameworks &", "Tools &")
+        # and look ahead to next line to combine it (e.g. "Libraries:" or "Platforms:")
+        if (line_s.endswith("&") or line_s.lower().endswith(" and")) and i < len(lines):
+            next_line = lines[i]
+            combined = f"{line_s} {next_line}".strip()
+            if combined.endswith(":") or any(cat in combined.lower() for cat in ("libraries", "platforms", "technologies", "tools", "frameworks")):
+                line_s = combined
+                i += 1  # consume next line as part of the header
+
         # Check for sub-header lines like "Category Name:" or "Category Name: skill1, skill2..."
         m = re.match(r'^([A-Za-z0-9\s&/\-_]+):\s*(.*)$', line_s)
+        clean_line_no_colon = line_s.rstrip(":").strip()
+        
+        # Skip section titles like "SKILLS" at the start of section
+        if clean_line_no_colon.upper() in ("SKILLS", "TECHNICAL SKILLS", "TECHNICAL PROFICIENCIES", "CORE COMPETENCIES") and not m:
+            continue
+
+        is_standalone_cat = (
+            not m and 
+            clean_line_no_colon.lower() in DISALLOWED_SKILL_NAMES and
+            any(k in clean_line_no_colon.lower() for k in ("skill", "framework", "tool", "platform", "language", "database", "cloud", "competenc"))
+        )
+
         if m:
             cat_name = m.group(1).strip()
             # Ignore non-skill headers
-            if cat_name.lower() not in ("email", "phone", "address", "date", "gpa", "degree", "title"):
+            if cat_name.lower() not in ("email", "phone", "address", "date", "gpa", "degree", "title", "contact", "links"):
                 current_cat = normalize_skill_category(cat_name)
                 if current_cat not in cat_headers:
                     cat_headers.append(current_cat)
@@ -432,13 +512,17 @@ def build_skill_category_map(raw_text: str):
                 if rest:
                     for s in re.split(r'[,|•·\t]|\s{2,}', rest):
                         s_clean = s.strip()
-                        if s_clean and len(s_clean) > 1 and not re.match(r'^\d+$', s_clean):
+                        if is_valid_skill_name(s_clean):
                             skill_to_cat[s_clean.lower()] = current_cat
                             raw_skills[s_clean.lower()] = (s_clean, current_cat)
+        elif is_standalone_cat:
+            current_cat = normalize_skill_category(clean_line_no_colon)
+            if current_cat not in cat_headers:
+                cat_headers.append(current_cat)
         elif current_cat:
             for s in re.split(r'[,|•·\t]|\s{2,}', line_s):
                 s_clean = s.strip()
-                if s_clean and len(s_clean) > 1 and not re.match(r'^\d+$', s_clean):
+                if is_valid_skill_name(s_clean):
                     skill_to_cat[s_clean.lower()] = current_cat
                     raw_skills[s_clean.lower()] = (s_clean, current_cat)
                     
@@ -909,9 +993,9 @@ def extract_contact_info_deterministic(text: str) -> dict:
         if len(re.sub(r'\D', '', val)) >= 7:
             info["phone"] = val
 
-    # 3. URLs & Links in raw text lines
+    # 3. URLs & Links in raw text lines (header only)
     lines = [l.strip() for l in text.split('\n') if l.strip()]
-    for l in lines:
+    for l in lines[:12]:
         if "linkedin.com" in l.lower() and not info["linkedin"]:
             m = re.search(r'(?:https?:\/\/)?(?:www\.)?linkedin\.com\/(?:in|company)\/[A-Za-z0-9_.-]+(?:\/)?', l, re.I)
             if m:
@@ -920,10 +1004,14 @@ def extract_contact_info_deterministic(text: str) -> dict:
             m = re.search(r'(?:https?:\/\/)?(?:www\.)?github\.com\/[A-Za-z0-9_.-]+(?:\/)?', l, re.I)
             if m:
                 info["github"] = m.group(0) if m.group(0).startswith("http") else f"https://{m.group(0)}"
-        if any(dom in l.lower() for dom in [".vercel.app", ".github.io", ".netlify.app", ".dev", ".me", ".pages.dev"]):
-            m = re.search(r'(?:https?:\/\/)?([A-Za-z0-9_.-]+\.(?:vercel\.app|github\.io|netlify\.app|me|dev|pages\.dev))(?:\/[^\s]*)?', l, re.I)
-            if m and not info["portfolio"]:
-                info["portfolio"] = m.group(0) if m.group(0).startswith("http") else f"https://{m.group(0)}"
+        if any(w in l.lower() for w in ("portfolio:", "website:", "site:", "web:")):
+            m = re.search(r'(?:https?:\/\/)?([A-Za-z0-9_.-]+\.[A-Za-z]{2,})(?:\/[^\s]*)?', l, re.I)
+            if m:
+                val = m.group(0) if m.group(0).startswith("http") else f"https://{m.group(0)}"
+                if "portfolio" in l.lower() and not info["portfolio"]:
+                    info["portfolio"] = val
+                elif not info["website"]:
+                    info["website"] = val
 
     # 4. Embedded Hyperlinks
     embedded_parsed = extract_hyperlinks_from_text(text)
@@ -956,31 +1044,44 @@ def extract_contact_info_deterministic(text: str) -> dict:
                 pass
             return False
 
+        if effective_url.startswith("mailto:") or effective_url.startswith("tel:"):
+            continue
+
+        a_low = anchor.strip().lower()
+
         # LinkedIn detection
-        if ("linkedin.com" in effective_url.lower() or "linkedin" in anchor.lower()) and not info["linkedin"]:
+        if ("linkedin.com" in effective_url.lower() or "linkedin" in a_low) and not info["linkedin"]:
             if "linkedin.com" in effective_url.lower():
                 info["linkedin"] = effective_url
             elif "linkedin.com" in uri.lower():
                 info["linkedin"] = uri
 
         # GitHub detection (user profile)
-        if ("github.com" in effective_url.lower() or "github" in anchor.lower()) and not info["github"]:
+        if ("github.com" in effective_url.lower() or "github" in a_low) and not info["github"]:
             target_gh = effective_url if "github.com" in effective_url.lower() else uri
             if "github.com" in target_gh.lower():
                 segs = [s for s in target_gh.split('/') if s and s not in ('http:', 'https:', 'github.com', 'www.github.com')]
                 if len(segs) <= 1:
                     info["github"] = target_gh
 
-        # Portfolio / Personal Website detection
-        is_port_candidate = (
-            "portfolio" in anchor.lower() or 
-            "portfolio" in ctx.lower() or 
-            any(d in effective_url.lower() for d in [".vercel.app", ".github.io", ".netlify.app", ".pages.dev", ".me", ".dev"]) or
-            anchor.lower() in ("portfolio", "website", "my website", "personal website", "portfolio website")
-        )
-        if is_port_candidate and not info["portfolio"] and not is_dummy_candidate(effective_url):
-            if "linkedin.com" not in effective_url.lower() and "github.com" not in effective_url.lower() and not effective_url.startswith("mailto:") and not effective_url.startswith("tel:"):
+        # Portfolio detection
+        if ("portfolio" in a_low or a_low in ("portfolio", "my portfolio", "portfolio site")) and not info["portfolio"] and not is_dummy_candidate(effective_url):
+            if "linkedin.com" not in effective_url.lower() and "github.com" not in effective_url.lower():
                 info["portfolio"] = effective_url
+
+        # Website detection
+        if ("website" in a_low or a_low in ("website", "my website", "personal website", "site", "web", "blog")) and not info["website"] and not is_dummy_candidate(effective_url):
+            if "linkedin.com" not in effective_url.lower() and "github.com" not in effective_url.lower():
+                info["website"] = effective_url
+
+    # Fallback for portfolio from personal domain link if still unset
+    if not info["portfolio"]:
+        for item in embedded_parsed:
+            u = item["uri"]
+            if any(d in u.lower() for d in [".vercel.app", ".github.io", ".netlify.app", ".pages.dev", ".me", ".dev"]):
+                if "github.com" not in u.lower() and "linkedin.com" not in u.lower() and not u.startswith("mailto:") and not u.startswith("tel:"):
+                    info["portfolio"] = u
+                    break
 
     # General GitHub profile fallback if only repo links existed in embedded links
     if not info["github"]:
@@ -1124,7 +1225,7 @@ def parse_resume_deterministic(text: str, photo: Optional[str] = None, detected_
     skills = []
     seen_skills = set()
     for s_lower, (orig_name, s_cat) in raw_skills.items():
-        if s_lower not in seen_skills:
+        if s_lower not in seen_skills and is_valid_skill_name(orig_name):
             seen_skills.add(s_lower)
             skills.append({
                 "id": f"skill_{uuid.uuid4().hex[:8]}",
@@ -1200,7 +1301,7 @@ def post_process_json(parsed_json, raw_text: str = None):
         for skill in parsed_json["skills"]:
             if isinstance(skill, dict):
                 s_name = str(skill.get("name", "")).strip()
-                if not s_name:
+                if not s_name or not is_valid_skill_name(s_name):
                     continue
                 s_key = s_name.lower()
                 if s_key in seen_skills:
@@ -1227,7 +1328,7 @@ def post_process_json(parsed_json, raw_text: str = None):
     # Merge any skills from raw_text that LLM missed (e.g. Wireshark, Google Colab, Replit, GitLab CI/CD)
     if raw_skills:
         for s_lower, (orig_name, s_cat) in raw_skills.items():
-            if s_lower not in seen_skills:
+            if s_lower not in seen_skills and is_valid_skill_name(orig_name):
                 seen_skills.add(s_lower)
                 clean_skills.append({
                     "id": f"skill_{uuid.uuid4().hex[:8]}",
@@ -1558,16 +1659,20 @@ def post_process_json(parsed_json, raw_text: str = None):
     elif not port_val.startswith("http://") and not port_val.startswith("https://"):
         parsed_json["portfolio"] = f"https://{port_val}"
 
-    # 4. Website (Must not duplicate portfolio)
+    # 4. Website
     web_val = str(parsed_json.get("website", "") or "").strip()
     cur_port = str(parsed_json.get("portfolio", "") or "").strip()
-    if is_bad_url(web_val) or web_val.rstrip("/") == cur_port.rstrip("/"):
-        recovered = next((u for a, c, u in embedded_links if not is_bad_url(u) and u.rstrip("/") != cur_port.rstrip("/") and ("website" in a or "site" in a or "web" in a) and "linkedin" not in u.lower() and "github" not in u.lower() and not u.startswith("mailto:") and not u.startswith("tel:")), "")
-        if recovered and recovered.rstrip("/") != cur_port.rstrip("/"):
+    if is_bad_url(web_val):
+        recovered = next((u for a, c, u in embedded_links if not is_bad_url(u) and ("website" in a.lower() or a.lower() in ("site", "web")) and "linkedin" not in u.lower() and "github" not in u.lower() and not u.startswith("mailto:") and not u.startswith("tel:")), "")
+        if not recovered:
+            recovered = next((a if a.startswith("http") else f"https://{a}" for a, c, u in embedded_links if not is_bad_url(a) and ("website" in a.lower() or a.lower() in ("site", "web"))), "")
+        if not recovered:
+            recovered = next((u for a, c, u in embedded_links if not is_bad_url(u) and u.rstrip("/") != cur_port.rstrip("/") and any(k in u.lower() for k in [".vercel.app", ".github.io", ".netlify.app", ".pages.dev", ".me", ".dev"]) and "linkedin" not in u.lower() and "github" not in u.lower() and not u.startswith("mailto:") and not u.startswith("tel:")), "")
+        if recovered:
             parsed_json["website"] = recovered
         else:
             parsed_json["website"] = ""
-    elif web_val and not web_val.startswith("http://") and not web_val.startswith("https://"):
+    elif not web_val.startswith("http://") and not web_val.startswith("https://"):
         parsed_json["website"] = f"https://{web_val}"
 
     # Clean Project URLs
@@ -1971,7 +2076,7 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detecte
                                     raw_item = raw_buffer[item_start:idx+1]
                                     try:
                                         val = json.loads(raw_item)
-                                        if isinstance(val, str) and val.strip():
+                                        if isinstance(val, str) and val.strip() and is_valid_skill_name(val.strip()):
                                             cat = skill_to_cat.get(val.strip().lower()) or "Technical Skills"
                                             completed_items.append({"name": val.strip(), "category": cat, "proficiency": 5})
                                     except Exception:
@@ -1994,15 +2099,16 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detecte
                                             val = json.loads(raw_item)
                                             if isinstance(val, dict) and val.get("name"):
                                                 s_name = str(val.get("name", "")).strip()
-                                                s_cat = val.get("category")
-                                                if s_cat:
-                                                    s_cat = str(s_cat).strip().rstrip(":")
-                                                if s_name.lower() in skill_to_cat:
-                                                    s_cat = skill_to_cat[s_name.lower()]
-                                                elif not s_cat or s_cat.lower() in ("technical", "skills", "general"):
-                                                    s_cat = skill_to_cat.get(s_name.lower()) or s_cat or "Technical Skills"
-                                                val["category"] = s_cat
-                                                completed_items.append(val)
+                                                if is_valid_skill_name(s_name):
+                                                    s_cat = val.get("category")
+                                                    if s_cat:
+                                                        s_cat = str(s_cat).strip().rstrip(":")
+                                                    if s_name.lower() in skill_to_cat:
+                                                        s_cat = skill_to_cat[s_name.lower()]
+                                                    elif not s_cat or s_cat.lower() in ("technical", "skills", "general"):
+                                                        s_cat = skill_to_cat.get(s_name.lower()) or s_cat or "Technical Skills"
+                                                    val["category"] = s_cat
+                                                    completed_items.append(val)
                                         except Exception:
                                             pass
                                         item_start = None
@@ -2015,7 +2121,7 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detecte
                             new_skill = completed_items[emitted_skills_count]
                             emitted_skills_count += 1
                             s_name = str(new_skill.get("name", "")).strip()
-                            if s_name and s_name.lower() not in emitted_skills_names:
+                            if s_name and is_valid_skill_name(s_name) and s_name.lower() not in emitted_skills_names:
                                 emitted_skills_names.add(s_name.lower())
                                 s_cat = new_skill.get("category")
                                 if s_cat:
@@ -2181,16 +2287,17 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detecte
                 # Emit any skills that were added or merged during post-processing
                 if validated.skills:
                     for sk in validated.skills:
-                        s_key = sk.name.lower()
-                        if s_key not in emitted_skills_names:
-                            emitted_skills_names.add(s_key)
-                            yield {
-                                "event": "skill_item",
-                                "skill": sk.model_dump(),
-                                "index": len(emitted_skills_names),
-                                "label": f"Placed Skill: {sk.name} ({sk.category})",
-                                "pct": 96
-                            }
+                        if is_valid_skill_name(sk.name):
+                            s_key = sk.name.lower()
+                            if s_key not in emitted_skills_names:
+                                emitted_skills_names.add(s_key)
+                                yield {
+                                    "event": "skill_item",
+                                    "skill": sk.model_dump(),
+                                    "index": len(emitted_skills_names),
+                                    "label": f"Placed Skill: {sk.name} ({sk.category})",
+                                    "pct": 96
+                                }
 
                 for sec in ["experience", "education", "projects", "certifications", "languages", "awards", "volunteer"]:
                     sec_val = getattr(validated, sec, None)
@@ -2236,14 +2343,17 @@ def stream_parse_resume_with_llm(text: str, photo: Optional[str] = None, detecte
 
     # Emit skills
     if validated.skills:
-        for idx, sk in enumerate(validated.skills, 1):
-            yield {
-                "event": "skill_item",
-                "skill": sk.model_dump(),
-                "index": idx,
-                "label": f"Placed Skill: {sk.name}",
-                "pct": min(85, 45 + idx * 3)
-            }
+        valid_idx = 1
+        for sk in validated.skills:
+            if is_valid_skill_name(sk.name):
+                yield {
+                    "event": "skill_item",
+                    "skill": sk.model_dump(),
+                    "index": valid_idx,
+                    "label": f"Placed Skill: {sk.name}",
+                    "pct": min(85, 45 + valid_idx * 3)
+                }
+                valid_idx += 1
 
     # Emit sections
     for sec in ["experience", "education", "projects", "certifications", "languages", "awards", "volunteer"]:
