@@ -26,9 +26,14 @@ h1, h2, h3, h4, h5, h6 {
     font-weight: bold;
 }
 
-p, ul, ol, div {
+p, ul, ol {
     margin-top: 0;
-    margin-bottom: 8px;
+    margin-bottom: 4px;
+}
+
+div {
+    margin-top: 0;
+    margin-bottom: 0;
 }
 
 a {
@@ -82,11 +87,14 @@ li {
 
 .entry-right {
     flex: 0 0 auto;
+    text-align: right;
+}
+
+[data-section-type="education"] .entry-right {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 2px;
-    text-align: right;
 }
 
 .entry-badge {

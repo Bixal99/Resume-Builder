@@ -114,18 +114,18 @@
     <h2 class="section-title">PROJECTS</h2>
     <div class="section-content">
         {% for proj in resume.projects %}
-        <div class="entry" style="margin-bottom: 1px;">
-            <div class="entry-header" style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px;">
-                <div class="entry-left" style="flex: 1;">
+        <div class="entry" style="margin-bottom: 4px;">
+            <div class="entry-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
+                <div class="entry-left" style="flex: 1; min-width: 0;">
                     <span style="font-weight: bold; font-size: 8.5pt;">{{ proj.title }}</span>{% if proj.organization %}<span style="font-style: normal; font-size: 8.5pt;">, {{ proj.organization }}</span>{% endif %}
                 </div>
                 {% if proj.date or proj.github_url or proj.live_url %}
-                <div class="entry-right" style="text-align: right; font-size: 8.5pt;">
-                    {% if proj.date %}<span style="margin-right: 8px;">{{ proj.date }}</span>{% endif %}
+                <div style="flex-shrink: 0; text-align: right; font-size: 8.5pt;">
+                    {% if proj.date %}<div style="white-space: nowrap;">{{ proj.date }}</div>{% endif %}
                     {% set links = [] %}
                     {% if proj.github_url and (proj.github_url | format_url) %}{% set _ = links.append('<a href="' ~ (proj.github_url | format_url) ~ '" target="_blank" rel="noopener noreferrer">' ~ (resume.github_label or "GitHub") ~ '</a>') %}{% endif %}
                     {% if proj.live_url and (proj.live_url | format_url) %}{% set _ = links.append('<a href="' ~ (proj.live_url | format_url) ~ '" target="_blank" rel="noopener noreferrer">Live Demo</a>') %}{% endif %}
-                    {{ links | join(' | ') | safe }}
+                    {% if links %}<div style="white-space: nowrap;">{{ links | join(' | ') | safe }}</div>{% endif %}
                 </div>
                 {% endif %}
             </div>

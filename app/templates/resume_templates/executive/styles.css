@@ -166,11 +166,14 @@ body {
 
 .entry-right {
     flex-shrink: 0;
+    text-align: right;
+}
+
+[data-section-type="education"] .entry-right {
     display: flex;
     flex-direction: column;
     align-items: flex-end;
     gap: 2px;
-    text-align: right;
 }
 
 .entry-title {

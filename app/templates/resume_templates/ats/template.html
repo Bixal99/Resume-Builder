@@ -122,13 +122,16 @@
         <div class="entry">
             <div class="entry-header">
                 <div class="entry-left">
-                    <span class="entry-title"><strong>{{ project.title }}</strong></span>
+                    <div class="entry-title"><strong>{{ project.title }}</strong></div>
                     {% set gh_url = project.github_url | format_url %}
                     {% set lv_url = project.live_url | format_url %}
                     {% if gh_url or lv_url %}
-                    <span class="entry-links">
-                        ({% if gh_url %}<a href="{{ gh_url }}" target="_blank" rel="noopener noreferrer">{{ project.github_url }}</a>{% endif %}{% if gh_url and lv_url %}, {% endif %}{% if lv_url %}<a href="{{ lv_url }}" target="_blank" rel="noopener noreferrer">{{ project.live_url }}</a>{% endif %})
-                    </span>
+                    <div class="entry-links" style="font-size: 9pt; color: var(--color-text-muted);">
+                        {% set links = [] %}
+                        {% if gh_url %}{% set _ = links.append('<a href="' ~ gh_url ~ '" target="_blank" rel="noopener noreferrer">GitHub</a>') %}{% endif %}
+                        {% if lv_url %}{% set _ = links.append('<a href="' ~ lv_url ~ '" target="_blank" rel="noopener noreferrer">Live Demo</a>') %}{% endif %}
+                        {{ links | join(' | ') | safe }}
+                    </div>
                     {% endif %}
                 </div>
                 {% if project.date %}
