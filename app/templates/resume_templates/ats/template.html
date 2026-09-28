@@ -165,13 +165,13 @@
         <div class="entry">
             <div class="entry-header">
                 <div class="entry-left">
-                    <span class="entry-title"><strong>{{ edu.degree }}{% if edu.field_of_study %} in {{ edu.field_of_study }}{% endif %}</strong></span> —
-                    <span class="entry-subtitle">{{ edu.institution }}{% if edu.location %} ({{ edu.location }}){% endif %}</span>
+                    <div class="entry-title"><strong>{{ edu.degree }}{% if edu.field_of_study %} in {{ edu.field_of_study }}{% endif %}</strong></div>
+                    <div class="entry-subtitle">{{ edu.institution }}{% if edu.location %} · {{ edu.location }}{% endif %}</div>
                 </div>
                 <div class="entry-right">
                     <span class="entry-date">{{ edu.start_date or '' }}{% if edu.start_date %} – {% endif %}{% if edu.is_current %}Present{% else %}{{ edu.end_date or '' }}{% endif %}</span>
                     {% if edu.grade %}
-                    <span class="entry-grade"> (GPA: {{ edu.grade }})</span>
+                    <span class="entry-badge">{{ edu.grade }}</span>
                     {% endif %}
                 </div>
             </div>

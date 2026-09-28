@@ -154,9 +154,23 @@ body {
 .entry-header {
     display: flex;
     justify-content: space-between;
-    align-items: baseline;
+    align-items: flex-start;
     gap: 12px;
     margin-bottom: 2px;
+}
+
+.entry-left {
+    flex: 1;
+    min-width: 0;
+}
+
+.entry-right {
+    flex-shrink: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+    text-align: right;
 }
 
 .entry-title {
@@ -186,8 +200,12 @@ body {
     display: inline-block;
     font-size: 8pt;
     color: var(--color-accent);
+    background: #faf6f0;
+    border: 1px solid var(--color-border);
+    padding: 1px 6px;
+    border-radius: 4px;
     font-weight: 600;
-    margin-left: 8px;
+    white-space: nowrap;
 }
 
 .entry-description {

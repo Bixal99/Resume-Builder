@@ -85,18 +85,18 @@
     <h2 class="section-title">EDUCATION</h2>
     <div class="section-content">
         {% for edu in resume.education %}
-        <div class="entry" style="margin-bottom: 1px;">
-            <div class="entry-header" style="display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 2px;">
-                <div class="entry-left" style="flex: 1;">
-                    <span style="font-weight: bold; font-size: 8.5pt;">{{ edu.institution }}</span>{% if edu.location %}<span style="font-style: normal;">, {{ edu.location }}</span>{% endif %}
+        <div class="entry" style="margin-bottom: 3px;">
+            <div class="entry-header" style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 2px;">
+                <div class="entry-left" style="flex: 1; min-width: 0;">
+                    <div style="font-weight: bold; font-size: 8.5pt;">{{ edu.degree }}{% if edu.field_of_study %} in {{ edu.field_of_study }}{% endif %}</div>
+                    <div style="font-size: 8.5pt; color: #444;">{{ edu.institution }}{% if edu.location %}, {{ edu.location }}{% endif %}</div>
                 </div>
-                <div class="entry-right" style="text-align: right; font-size: 8.5pt;">
-                    {{ edu.start_date or '' }}{% if edu.start_date %} – {% endif %}{% if edu.is_current %}Present{% else %}{{ edu.end_date or '' }}{% endif %}
+                <div class="entry-right" style="flex-shrink: 0; display: flex; flex-direction: column; align-items: flex-end; gap: 2px; text-align: right; font-size: 8.5pt;">
+                    <span class="entry-date">{{ edu.start_date or '' }}{% if edu.start_date %} – {% endif %}{% if edu.is_current %}Present{% else %}{{ edu.end_date or '' }}{% endif %}</span>
+                    {% if edu.grade %}
+                    <span class="entry-badge" style="display: inline-block; font-size: 8pt; color: #1e3a8a; background: #f1f5f9; border: 1px solid #cbd5e1; padding: 1px 6px; border-radius: 4px; font-weight: 600; white-space: nowrap;">{{ edu.grade }}</span>
+                    {% endif %}
                 </div>
-            </div>
-            <div class="entry-subheader" style="margin-bottom: 2px;">
-                <span style="font-style: italic; font-size: 8.5pt;">{{ edu.degree }}{% if edu.field_of_study %} in {{ edu.field_of_study }}{% endif %}</span>
-                {% if edu.grade %}<span style="margin-left: 8px;">| {{ edu.grade }}</span>{% endif %}
             </div>
             
             {% if edu.description %}
