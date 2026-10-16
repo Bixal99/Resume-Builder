@@ -88,7 +88,8 @@ const JsonResumeConverter = (() => {
             projects: (d.projects || []).map(p => ({
                 name: p.title || '',
                 description: p.description || '',
-                highlights: [],
+                startDate: p.date || '',
+                highlights: Array.isArray(p.highlights) ? p.highlights : [],
                 keywords: Array.isArray(p.technologies) ? p.technologies : [],
                 url: p.url || p.github_url || ''
             })),
@@ -191,6 +192,7 @@ const JsonResumeConverter = (() => {
         const projects = (json.projects || []).map((p, idx) => ({
             id: `proj_${Date.now()}_${idx}`,
             title: p.name || '',
+            date: p.startDate || p.date || '',
             description: p.description || (Array.isArray(p.highlights) ? p.highlights.join('\n') : ''),
             url: p.url || '',
             github_url: '',
