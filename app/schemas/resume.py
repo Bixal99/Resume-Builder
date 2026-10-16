@@ -17,7 +17,7 @@ live preview rendering and PDF generation.
 from datetime import datetime
 from typing import Optional
 
-from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator
+from pydantic import BaseModel, ConfigDict, EmailStr, Field, field_validator, model_validator
 
 
 # =============================================================================
@@ -191,7 +191,20 @@ class CertificationBase(BaseModel):
     expiry_date: Optional[str] = Field(None, max_length=20)
     credential_id: Optional[str] = Field(None, max_length=200)
     credential_url: Optional[str] = Field(None, max_length=500)
+    url: Optional[str] = Field(None, max_length=500)
     sort_order: int = 0
+
+    @model_validator(mode="before")
+    @classmethod
+    def normalize_cert_fields(cls, data):
+        if isinstance(data, dict):
+            c_url = data.get("credential_url") or data.get("url")
+            if c_url:
+                data["credential_url"] = str(c_url).strip()
+                data["url"] = str(c_url).strip()
+            if not data.get("date") and data.get("issue_date"):
+                data["date"] = data["issue_date"]
+        return data
 
 
 class CertificationCreate(CertificationBase):
