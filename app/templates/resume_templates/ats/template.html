@@ -197,6 +197,10 @@
             <div class="entry-header">
                 <div class="entry-left">
                     <span><strong>{{ cert.name }}</strong></span>
+                    {% set cert_url = cert.credential_url or cert.url %}
+                    {% if cert_url and (cert_url | format_url) %}
+                    <span class="entry-links" style="display: inline-block; margin-left: 6px;"><a href="{{ cert_url | format_url }}" target="_blank" rel="noopener noreferrer">Credential</a></span>
+                    {% endif %}
                     {% if cert.issuer %}<span> — {{ cert.issuer }}</span>{% endif %}
                 </div>
                 <div class="entry-right">
