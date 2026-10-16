@@ -112,6 +112,7 @@ body {
     align-items: center;
     gap: 4px;
     white-space: nowrap;
+    word-break: keep-all;
 }
 
 .contact-item .icon {
@@ -368,7 +369,7 @@ body {
 
 /* --- Print Optimization --- */
 @page {
-    margin: 18mm 20mm;
+    margin: 12mm 15mm;
 }
 
 @media print {
