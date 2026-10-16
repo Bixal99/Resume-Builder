@@ -71,7 +71,7 @@ class PDFService:
 
         if engine == "weasyprint":
             try:
-                return self._generate_with_weasyprint(html, data.page_size)
+                return self._generate_with_weasyprint(html, data.page_size, target_pages=target_pages)
             except Exception as e:
                 logger.warning(
                     f"WeasyPrint PDF generation failed: {e}. "
@@ -87,7 +87,7 @@ class PDFService:
                     f"Attempting WeasyPrint fallback."
                 )
                 try:
-                    return self._generate_with_weasyprint(html, data.page_size)
+                    return self._generate_with_weasyprint(html, data.page_size, target_pages=target_pages)
                 except Exception as we:
                     logger.error(f"WeasyPrint fallback also failed: {we}")
                     raise RuntimeError(
@@ -137,13 +137,32 @@ class PDFService:
                 launch_errors = []
 
                 # Cascade strategy:
-                # 1. Default Playwright Chromium
-                try:
-                    browser = p.chromium.launch(headless=True, args=launch_args, timeout=10000)
-                except Exception as ex:
-                    launch_errors.append(f"default chromium: {ex}")
+                # 1. Existing system binary executable paths (fastest, pre-installed in Docker e.g. /usr/bin/chromium)
+                for exe_path in candidate_executables:
+                    if os.path.isfile(exe_path):
+                        try:
+                            browser = p.chromium.launch(
+                                executable_path=exe_path,
+                                headless=True,
+                                args=launch_args,
+                                timeout=10000,
+                            )
+                            if browser:
+                                logger.info(f"Successfully launched Chromium using binary: {exe_path}")
+                                break
+                        except Exception as ex:
+                            launch_errors.append(f"executable {exe_path}: {ex}")
 
-                # 2. Chrome system channel
+                # 2. Default Playwright packaged Chromium
+                if browser is None:
+                    try:
+                        browser = p.chromium.launch(headless=True, args=launch_args, timeout=10000)
+                        if browser:
+                            logger.info("Successfully launched default Playwright Chromium")
+                    except Exception as ex:
+                        launch_errors.append(f"default chromium: {ex}")
+
+                # 3. Chrome system channel
                 if browser is None:
                     try:
                         browser = p.chromium.launch(
@@ -152,10 +171,12 @@ class PDFService:
                             args=launch_args,
                             timeout=10000,
                         )
+                        if browser:
+                            logger.info("Successfully launched Chrome channel")
                     except Exception as ex:
                         launch_errors.append(f"chrome channel: {ex}")
 
-                # 3. Edge system channel
+                # 4. Edge system channel
                 if browser is None:
                     try:
                         browser = p.chromium.launch(
@@ -164,24 +185,10 @@ class PDFService:
                             args=launch_args,
                             timeout=10000,
                         )
+                        if browser:
+                            logger.info("Successfully launched Edge channel")
                     except Exception as ex:
                         launch_errors.append(f"msedge channel: {ex}")
-
-                # 4. Explicit system executable paths
-                if browser is None:
-                    for exe_path in candidate_executables:
-                        if os.path.isfile(exe_path):
-                            try:
-                                browser = p.chromium.launch(
-                                    executable_path=exe_path,
-                                    headless=True,
-                                    args=launch_args,
-                                    timeout=10000,
-                                )
-                                if browser:
-                                    break
-                            except Exception as ex:
-                                launch_errors.append(f"executable {exe_path}: {ex}")
 
                 if browser is None:
                     raise RuntimeError(
@@ -277,7 +284,7 @@ class PDFService:
         return await run_in_threadpool(_sync_generate)
 
     def _generate_with_weasyprint(
-        self, html: str, page_size: str = "A4"
+        self, html: str, page_size: str = "A4", target_pages: int = 1
     ) -> bytes:
         """
         Generate PDF using WeasyPrint (fallback engine).
@@ -287,6 +294,64 @@ class PDFService:
         """
         try:
             from weasyprint import HTML
+
+            if target_pages == 1:
+                weasy_fit = """
+                <style>
+                    @page {
+                        margin: 8mm 10mm !important;
+                    }
+                    html, body {
+                        font-size: 8pt !important;
+                        line-height: 1.3 !important;
+                    }
+                    .resume-page {
+                        padding: 0 !important;
+                        margin: 0 !important;
+                        min-height: 0 !important;
+                        width: 100% !important;
+                    }
+                    .resume-section {
+                        margin-bottom: 7px !important;
+                        break-inside: auto !important;
+                        page-break-inside: auto !important;
+                    }
+                    .section-title {
+                        margin-bottom: 3px !important;
+                        padding-bottom: 1px !important;
+                        font-size: 10.5pt !important;
+                    }
+                    .entry {
+                        margin-bottom: 5px !important;
+                        break-inside: avoid !important;
+                        page-break-inside: avoid !important;
+                    }
+                    .contact-info {
+                        gap: 4px 10px !important;
+                    }
+                    .contact-item {
+                        display: inline-block !important;
+                        white-space: nowrap !important;
+                        word-break: keep-all !important;
+                        margin-right: 10px !important;
+                    }
+                    .contact-item a {
+                        white-space: nowrap !important;
+                        word-break: keep-all !important;
+                    }
+                    .tag {
+                        padding: 1px 5px !important;
+                        font-size: 7.5pt !important;
+                    }
+                    .tech-tags {
+                        gap: 3px !important;
+                    }
+                </style>
+                """
+                if "</head>" in html:
+                    html = html.replace("</head>", f"{weasy_fit}</head>")
+                else:
+                    html = f"{weasy_fit}{html}"
 
             pdf_bytes = HTML(string=html).write_pdf()
             if not pdf_bytes:

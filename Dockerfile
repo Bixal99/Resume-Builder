@@ -11,25 +11,35 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
     PIP_DISABLE_PIP_VERSION_CHECK=1 \
     PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
 
-# Install system dependencies required by WeasyPrint and Playwright
+# Install system dependencies required by WeasyPrint and Playwright Chromium
 RUN apt-get update && apt-get install -y --no-install-recommends \
+    chromium \
     # WeasyPrint dependencies
     libpango-1.0-0 \
     libpangocairo-1.0-0 \
     libgdk-pixbuf-xlib-2.0-0 \
     libffi-dev \
     libcairo2 \
-    # Playwright/Chromium dependencies
+    # Playwright/Chromium shared libraries
     libnss3 \
+    libnspr4 \
+    libatk1.0-0 \
     libatk-bridge2.0-0 \
+    libcups2 \
     libdrm2 \
+    libdbus-1-3 \
     libxkbcommon0 \
+    libxcomposite1 \
+    libxdamage1 \
+    libxfixes3 \
+    libxrandr2 \
     libgbm1 \
     libasound2 \
     libxshmfence1 \
-    # General utilities
+    # General utilities & fonts
     curl \
     fonts-liberation \
+    fonts-noto-color-emoji \
     && rm -rf /var/lib/apt/lists/*
 
 # --- Build Stage ---
