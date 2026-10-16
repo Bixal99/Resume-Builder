@@ -72,9 +72,9 @@ const JsonResumeConverter = (() => {
             })),
             certificates: (d.certifications || []).map(c => ({
                 name: c.name || '',
-                date: c.issue_date || '',
+                date: c.date || c.issue_date || '',
                 issuer: c.issuer || '',
-                url: c.url || ''
+                url: c.credential_url || c.url || ''
             })),
             skills: (d.skills || []).map(s => ({
                 name: s.name || '',
@@ -207,9 +207,11 @@ const JsonResumeConverter = (() => {
             id: `cert_${Date.now()}_${idx}`,
             name: c.name || '',
             issuer: c.issuer || '',
+            date: c.date || '',
             issue_date: c.date || '',
             expiry_date: '',
             credential_id: '',
+            credential_url: c.url || '',
             url: c.url || ''
         }));
 
