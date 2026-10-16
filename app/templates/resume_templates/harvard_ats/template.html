@@ -189,7 +189,12 @@
         <ul style="list-style-type: disc; padding-left: 1.5em; margin: 0;">
         {% for cert in resume.certifications %}
             <li style="margin-bottom: 2px;">
-                <strong>{{ cert.name }}</strong>{% if cert.issuer %} – {{ cert.issuer }}{% endif %}
+                <strong>{{ cert.name }}</strong>
+                {% set cert_url = cert.credential_url or cert.url %}
+                {% if cert_url and (cert_url | format_url) %}
+                <span class="entry-links" style="display: inline-block; margin-left: 4px;">[<a href="{{ cert_url | format_url }}" target="_blank" rel="noopener noreferrer">Credential</a>]</span>
+                {% endif %}
+                {% if cert.issuer %} – {{ cert.issuer }}{% endif %}
                 {% if cert.date or cert.expiry_date %}
                 <span style="font-style: italic;">
                     ({{ cert.date or '' }}{% if cert.date and cert.expiry_date %} to {% endif %}{{ cert.expiry_date or '' }})
