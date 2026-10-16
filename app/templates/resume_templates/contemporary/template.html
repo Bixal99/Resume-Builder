@@ -219,7 +219,11 @@
         <div class="entry entry-compact">
             <div class="entry-header">
                 <div class="entry-left">
-                    <h3 class="entry-title">{{ cert.name }}</h3>
+                    <h3 class="entry-title">
+                        {{ cert.name }}
+                        {% set cert_url = cert.credential_url or cert.url %}
+                        {% if cert_url and (cert_url | format_url) %}<a href="{{ cert_url | format_url }}" class="entry-link" target="_blank" rel="noopener noreferrer">Credential</a>{% endif %}
+                    </h3>
                     {% if cert.issuer %}<p class="entry-subtitle">{{ cert.issuer }}</p>{% endif %}
                 </div>
                 <div class="entry-right">
