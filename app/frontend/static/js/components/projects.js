@@ -48,9 +48,13 @@ const ProjectsComponent = (() => {
             </div>
             <div class="entry-card-body">
                 <div class="form-grid">
-                    <div class="form-group full-width">
+                    <div class="form-group">
                         <label class="form-label">Project Name</label>
                         <input class="form-input proj-field" data-id="${projId}" data-field="title" value="${escapeAttr(item.title || '')}" placeholder="My Awesome App">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Date / Duration</label>
+                        <input class="form-input proj-field" data-id="${projId}" data-field="date" value="${escapeAttr(item.date || '')}" placeholder="e.g. June 2026 or 2025 – 2026">
                     </div>
                     <div class="form-group full-width">
                         <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
@@ -118,6 +122,7 @@ const ProjectsComponent = (() => {
             items.push({
                 id: ResumeStore.generateId('proj'),
                 title: '',
+                date: '',
                 description: '',
                 technologies: [],
                 github_url: '',
