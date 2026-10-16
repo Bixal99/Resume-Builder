@@ -426,6 +426,9 @@ class DOCXService:
                         issuer_info.append(cert.issuer)
                     if cert.date:
                         issuer_info.append(cert.date)
+                    cred_url = cert.credential_url or getattr(cert, 'url', None)
+                    if cred_url:
+                        issuer_info.append(f"Credential: {cred_url}")
                     if issuer_info:
                         run_sub = p.add_run(f" — {' · '.join(issuer_info)}")
                         run_sub.font.size = Pt(9.5)
