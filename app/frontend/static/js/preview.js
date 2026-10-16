@@ -851,11 +851,11 @@ const PreviewManager = (() => {
                     triggerElHighlight(titleEl);
                 } else if (['email', 'phone', 'address', 'linkedin', 'github', 'portfolio', 'website'].includes(field)) {
                     removeSlot('contact');
-                    let contactContainer = headerContent.querySelector('.contact-info, .header-contact');
+                    let contactContainer = header.querySelector('.contact-info, .header-contact') || headerContent.querySelector('.contact-info, .header-contact');
                     if (!contactContainer) {
                         contactContainer = doc.createElement('div');
                         contactContainer.className = 'contact-info';
-                        headerContent.appendChild(contactContainer);
+                        header.appendChild(contactContainer);
                     }
 
                     // Check if item for this field already exists

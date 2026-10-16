@@ -3,42 +3,44 @@
 {% block content %}
 <!-- ===== HEADER: Name, Title, Contact ===== -->
 <header class="resume-header">
-    <div class="header-content">
-        {% if has_personal %}
-        <h1 class="resume-name">{{ full_name }}</h1>
-        {% endif %}
-        {% if resume.professional_title %}
-        <p class="resume-title">{{ resume.professional_title }}</p>
-        {% endif %}
-        {% if has_contact %}
-        <div class="contact-info">
-            {% if resume.email %}
-            <span class="contact-item">Email: {{ resume.email }}</span>
+    <div class="header-main">
+        <div class="header-content">
+            {% if has_personal %}
+            <h1 class="resume-name">{{ full_name }}</h1>
             {% endif %}
-            {% if resume.phone %}
-            <span class="contact-item">Phone: {{ resume.phone }}</span>
+            {% if resume.professional_title %}
+            <p class="resume-title">{{ resume.professional_title }}</p>
             {% endif %}
-            {% if resume.address %}
-            <span class="contact-item">Location: {{ resume.address }}</span>
-            {% endif %}
-            {% if resume.linkedin and (resume.linkedin | format_url) %}
-            <span class="contact-item"><a href="{{ resume.linkedin | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.linkedin_label or "LinkedIn" }}</a></span>
-            {% endif %}
-            {% if resume.github and (resume.github | format_url) %}
-            <span class="contact-item"><a href="{{ resume.github | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.github_label or "GitHub" }}</a></span>
-            {% endif %}
-            {% if resume.portfolio and (resume.portfolio | format_url) %}
-            <span class="contact-item"><a href="{{ resume.portfolio | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.portfolio_label or "Portfolio" }}</a></span>
-            {% endif %}
-            {% if resume.website and (resume.website | format_url) %}
-            <span class="contact-item"><a href="{{ resume.website | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.website_label or "Website" }}</a></span>
-            {% endif %}
+        </div>
+        {% if resume.photo %}
+        <div class="header-photo">
+            <img src="{{ resume.photo }}" alt="Profile Photo" class="profile-photo" />
         </div>
         {% endif %}
     </div>
-    {% if resume.photo %}
-    <div class="header-photo">
-        <img src="{{ resume.photo }}" alt="Profile Photo" class="profile-photo" />
+    {% if has_contact %}
+    <div class="contact-info">
+        {% if resume.email %}
+        <span class="contact-item">Email: {{ resume.email }}</span>
+        {% endif %}
+        {% if resume.phone %}
+        <span class="contact-item">Phone: {{ resume.phone }}</span>
+        {% endif %}
+        {% if resume.address %}
+        <span class="contact-item">Location: {{ resume.address }}</span>
+        {% endif %}
+        {% if resume.linkedin and (resume.linkedin | format_url) %}
+        <span class="contact-item"><a href="{{ resume.linkedin | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.linkedin_label or "LinkedIn" }}</a></span>
+        {% endif %}
+        {% if resume.github and (resume.github | format_url) %}
+        <span class="contact-item"><a href="{{ resume.github | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.github_label or "GitHub" }}</a></span>
+        {% endif %}
+        {% if resume.portfolio and (resume.portfolio | format_url) %}
+        <span class="contact-item"><a href="{{ resume.portfolio | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.portfolio_label or "Portfolio" }}</a></span>
+        {% endif %}
+        {% if resume.website and (resume.website | format_url) %}
+        <span class="contact-item"><a href="{{ resume.website | format_url }}" target="_blank" rel="noopener noreferrer">{{ resume.website_label or "Website" }}</a></span>
+        {% endif %}
     </div>
     {% endif %}
 </header>

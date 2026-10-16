@@ -12,7 +12,7 @@
     {% endif %}
     
     {% if has_contact %}
-    <div class="contact-info" style="font-size: 8.5pt; margin-top: 1px;">
+    <div class="contact-info" style="font-size: 7.8pt; margin-top: 1px; white-space: nowrap; overflow: hidden;">
         {% set contact_items = [] %}
         {% if resume.email %}{% set _ = contact_items.append('<a href="mailto:' ~ resume.email ~ '">' ~ (resume.email_label or resume.email) ~ '</a>') %}{% endif %}
         {% if resume.phone %}{% set _ = contact_items.append(resume.phone) %}{% endif %}

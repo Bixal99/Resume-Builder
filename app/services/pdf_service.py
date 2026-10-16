@@ -327,17 +327,37 @@ class PDFService:
                         page-break-inside: avoid !important;
                     }
                     .contact-info {
-                        gap: 4px 10px !important;
+                        display: flex !important;
+                        flex-wrap: nowrap !important;
+                        white-space: nowrap !important;
+                        overflow: hidden !important;
+                        gap: 10px !important;
+                        font-size: 7.8pt !important;
+                        margin: 2px 0 0 0 !important;
                     }
                     .contact-item {
-                        display: inline-block !important;
+                        display: inline-flex !important;
+                        align-items: center !important;
                         white-space: nowrap !important;
                         word-break: keep-all !important;
-                        margin-right: 10px !important;
+                        gap: 3px !important;
+                        font-size: 7.8pt !important;
+                        flex-shrink: 0 !important;
+                        margin: 0 !important;
                     }
                     .contact-item a {
                         white-space: nowrap !important;
                         word-break: keep-all !important;
+                        font-size: 7.8pt !important;
+                    }
+                    .contact-item .icon,
+                    .contact-item svg {
+                        width: 11px !important;
+                        height: 11px !important;
+                        min-width: 11px !important;
+                        max-width: 11px !important;
+                        flex-shrink: 0 !important;
+                        margin: 0 !important;
                     }
                     .tag {
                         padding: 1px 5px !important;
