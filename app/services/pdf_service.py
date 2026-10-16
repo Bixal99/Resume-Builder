@@ -203,6 +203,35 @@ class PDFService:
 
                     page.wait_for_timeout(500)
 
+                    # Emulate print media so styles and print layout match PDF rendering
+                    try:
+                        page.emulate_media(media="print")
+                    except Exception as me_err:
+                        logger.debug(f"Media emulation notice: {me_err}")
+
+                    if target_pages == 1:
+                        try:
+                            page.add_style_tag(content="""
+                                @page { margin: 0 !important; }
+                                html, body {
+                                    height: 100% !important;
+                                    max-height: 100% !important;
+                                    overflow: hidden !important;
+                                    margin: 0 !important;
+                                    padding: 0 !important;
+                                }
+                                .resume-page {
+                                    min-height: 0 !important;
+                                    height: 100% !important;
+                                    max-height: 100% !important;
+                                    box-sizing: border-box !important;
+                                    padding: 10mm 14mm !important;
+                                    overflow: hidden !important;
+                                }
+                            """)
+                        except Exception as st_err:
+                            logger.debug(f"Style tag injection notice: {st_err}")
+
                     format_size = page_size if page_size in ("A4", "Letter") else "A4"
                     page_height_px = 1122 if format_size == "A4" else 1056
                     max_allowed_height = page_height_px * target_pages
@@ -219,9 +248,8 @@ class PDFService:
 
                     # Dynamically calculate scale so the resume strictly fits within the target page count
                     if actual_height > max_allowed_height:
-                        # Safety margin of 18px to prevent single-pixel page breaks
-                        fitted_scale = (max_allowed_height - 18) / actual_height
-                        calc_scale = max(0.65, min(1.0, round(fitted_scale, 3)))
+                        fitted_scale = (max_allowed_height - 15) / actual_height
+                        calc_scale = max(0.50, min(1.0, round(fitted_scale, 3)))
                     else:
                         calc_scale = 0.98
 
