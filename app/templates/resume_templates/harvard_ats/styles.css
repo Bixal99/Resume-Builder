@@ -114,6 +114,15 @@ li {
     display: none !important;
 }
 
+.entry-links,
+.entry-links a,
+a.entry-link {
+    color: #1e3a8a !important;
+    text-decoration: underline !important;
+    font-size: 8pt;
+    font-weight: 500;
+}
+
 /* Print optimizations */
 @media print {
     body {
