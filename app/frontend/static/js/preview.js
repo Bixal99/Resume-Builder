@@ -670,13 +670,15 @@ const PreviewManager = (() => {
         function renderDocCertificationEntry(cert) {
             const cObj = typeof cert === 'string' ? { name: cert } : (cert || {});
             const name = escapeDocHtml(cObj.name || cObj.title || '');
-            const issuer = cObj.issuer ? ` · ${escapeDocHtml(cObj.issuer)}` : '';
-            const date = cObj.date || '';
+            const credUrl = formatExternalUrl(cObj.credential_url || cObj.url);
+            const cred = credUrl ? `<a href="${escapeDocHtml(credUrl)}" class="entry-link" target="_blank" rel="noopener noreferrer">Credential</a>` : '';
+            const issuer = cObj.issuer ? `<p class="entry-subtitle">${escapeDocHtml(cObj.issuer)}</p>` : '';
+            const dateSpan = cObj.date ? `<div class="entry-right"><span class="entry-date">${escapeDocHtml(cObj.date)}</span></div>` : '';
             return `
-                <div class="entry">
+                <div class="entry entry-compact">
                     <div class="entry-header">
-                        <div class="entry-left"><h3 class="entry-title">${name}</h3><p class="entry-subtitle">${issuer}</p></div>
-                        <div class="entry-right"><span class="entry-date">${date}</span></div>
+                        <div class="entry-left"><h3 class="entry-title">${name} ${cred}</h3>${issuer}</div>
+                        ${dateSpan}
                     </div>
                 </div>
             `;
