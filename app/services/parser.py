@@ -21,6 +21,42 @@ SUPPORTED_MODELS = [
 ]
 
 
+def heal_split_tokens(text: str) -> str:
+    """
+    Heals split words, emails, phone numbers, and URLs caused by narrow column wrapping in PDFs.
+    E.g.
+    - 'bilalnadeema302003@gmail.co\\nm' -> 'bilalnadeema302003@gmail.com'
+    - 'LinkedI\\nn' -> 'LinkedIn'
+    - 'GitHu\\nb' -> 'GitHub'
+    - 'Portfoli\\no' -> 'Portfolio'
+    - 'Websit\\ne' -> 'Website'
+    - '+974\\n55470358' -> '+974 55470358'
+    - 'Doha,\\nQatar' -> 'Doha, Qatar'
+    """
+    if not text:
+        return ""
+    # Broken email domains (.co\nm, @gmail.\ncom, etc.)
+    text = re.sub(r'([A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+)\s*\n\s*([A-Za-z]{1,4})\b', r'\1\2', text)
+    text = re.sub(r'([A-Za-z0-9._%+-]+@)\s*\n\s*([A-Za-z0-9.-]+\.[A-Za-z]{2,})\b', r'\1\2', text)
+    
+    # Broken common contact labels
+    text = re.sub(r'\bLinkedI\s*\n\s*n\b', 'LinkedIn', text, flags=re.I)
+    text = re.sub(r'\bGitHu\s*\n\s*b\b', 'GitHub', text, flags=re.I)
+    text = re.sub(r'\bPortfoli\s*\n\s*o\b', 'Portfolio', text, flags=re.I)
+    text = re.sub(r'\bWebsit\s*\n\s*e\b', 'Website', text, flags=re.I)
+    
+    # Broken URLs split across lines: e.g. linkedin.com/\nin/..., https://\ngithub.com/...
+    text = re.sub(r'((?:https?://|www\.)[^\s\n]+)\s*\n\s*([a-zA-Z0-9_\-\./\?&=%]+)', r'\1\2', text)
+    text = re.sub(r'(linkedin\.com/(?:in|company)/)\s*\n\s*([a-zA-Z0-9_\-]+)', r'\1\2', text, flags=re.I)
+    
+    # Broken phone numbers: e.g. +974\n55470358 -> +974 55470358
+    text = re.sub(r'(\+\d{1,4})\s*\n\s*(\d{5,12})\b', r'\1 \2', text)
+    
+    # Broken location: e.g. Doha,\nQatar -> Doha, Qatar
+    text = re.sub(r'([A-Za-z]+,)\s*\n\s*([A-Za-z]+)\b', r'\1 \2', text)
+    return text
+
+
 def extract_text_from_pdf(file_bytes: bytes) -> str:
     """
     Extracts text from a digital PDF using PyMuPDF.
@@ -45,29 +81,35 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
                 uri = (link.get("uri") or "").strip()
                 if not uri:
                     continue
+                # Normalize schemes: handle www., drive.google.com, linkedin.com without explicit https://
                 if not (uri.startswith("http://") or uri.startswith("https://") or uri.startswith("mailto:") or uri.startswith("tel:")):
-                    continue
+                    if uri.startswith("www.") or ("." in uri and not uri.startswith("javascript:") and not uri.startswith("#")):
+                        uri = "https://" + uri
+                    else:
+                        continue
                 rect = link.get("from")
                 anchor_text = page.get_textbox(rect).strip() if rect else ""
                 if not anchor_text and rect:
-                    anchor_text = page.get_textbox(fitz.Rect(rect.x0 - 2, rect.y0 - 2, rect.x1 + 2, rect.y1 + 2)).strip()
+                    anchor_text = page.get_textbox(fitz.Rect(rect.x0 - 5, rect.y0 - 5, rect.x1 + 10, rect.y1 + 5)).strip()
                 # Expand context horizontally across the page to capture project title, labels, and dates on the same line
                 context = ""
                 if rect:
                     line_x0 = max(0, rect.x0 - 350)
                     line_x1 = min(page.rect.width, rect.x1 + 350)
-                    line_y0 = max(0, rect.y0 - 6)
-                    line_y1 = rect.y1 + 6
+                    line_y0 = max(0, rect.y0 - 8)
+                    line_y1 = rect.y1 + 8
                     ctx_rect = fitz.Rect(line_x0, line_y0, line_x1, line_y1)
                     context = page.get_textbox(ctx_rect).strip().replace("\n", " ")
                 
+                clean_anchor = re.sub(r'\s+', ' ', anchor_text).strip()
+                clean_context = re.sub(r'\s+', ' ', context).strip()
                 embedded_links.append({
-                    "anchor": anchor_text,
-                    "context": context,
+                    "anchor": clean_anchor,
+                    "context": clean_context,
                     "uri": uri
                 })
         
-        text = text.strip()
+        text = heal_split_tokens(text.strip())
         if not text:
             raise ValueError("No extractable text found in the PDF. Scanned images are not currently supported.")
 
@@ -80,8 +122,8 @@ def extract_text_from_pdf(file_bytes: bytes) -> str:
                 if key in seen_items:
                     continue
                 seen_items.add(key)
-                anchor = (item["anchor"] or "Link").replace("'", " ").strip()
-                clean_ctx = (item["context"] or "").replace("'", " ").strip()
+                anchor = re.sub(r'\s+', ' ', (item["anchor"] or "Link")).replace("'", " ").strip()
+                clean_ctx = re.sub(r'\s+', ' ', (item["context"] or "")).replace("'", " ").strip()
                 ctx = f" (Context: '{clean_ctx}')" if clean_ctx and clean_ctx != anchor else ""
                 text += f"- Anchor: '{anchor}'{ctx} -> Target URL: {item['uri']}\n"
             
@@ -231,7 +273,7 @@ def _get_system_and_user_prompts(text: str):
         "projects": [{"title": "", "date": "", "description": "", "technologies": [""], "github_url": "", "live_url": "", "highlights": [""]}],
         "skills": [{"name": "", "category": "Technical Skills", "proficiency": 5}],
         "languages": [{"name": "", "fluency": ""}],
-        "certifications": [{"name": "", "issuer": "", "date": "", "expiry_date": ""}],
+        "certifications": [{"name": "", "issuer": "", "date": "", "expiry_date": "", "credential_url": ""}],
         "awards": [{"title": "", "issuer": "", "date": "", "description": ""}],
         "volunteer": [{"organization": "", "role": "", "location": "", "start_date": "", "end_date": "", "is_current": False, "description": ""}]
     }
@@ -282,6 +324,7 @@ CRITICAL PARSING RULES:
 7. LINKS & URLS (CRITICAL):
    - Extract real destination URLs for 'linkedin', 'github', 'portfolio', 'website', 'github_url', and 'live_url'.
    - Check both the resume text AND the '--- EMBEDDED HYPERLINKS IN RESUME ---' section at the bottom of the document.
+   - LINKEDIN (CRITICAL): If a LinkedIn link exists anywhere in the text or '--- EMBEDDED HYPERLINKS IN RESUME ---' (or contains 'linkedin.com'), you MUST extract the full URL into the 'linkedin' field! NEVER omit or leave 'linkedin' empty when a link or profile exists!
    - PROJECT LINKS (CRITICAL): In the Projects section, project titles often have anchor links right next to them, such as 'GitHub' and 'Live' (e.g. 'AI Book Assistant GitHub Live June 2026'). You MUST match each project to its corresponding embedded URLs:
      * Put the GitHub repository or code link into that project's 'github_url' field!
      * Put the live website, deployment, or demo link into that project's 'live_url' field!
@@ -293,10 +336,13 @@ CRITICAL PARSING RULES:
    Extract GPA, grades, or academic standing (e.g. "2.85/4.0", "3.8 GPA") into the 'grade' field of education.
 9. CERTIFICATIONS & CERTIFICATES (CRITICAL):
    Extract ALL certifications, certificates, licenses, credentials, and courses from sections titled "Certifications", "Certificates", "Licenses & Certifications", "Courses", etc. into the "certifications" array.
-   - 'name': Exact certification name or title (e.g. "bbb", "ssc", "AWS Certified Solutions Architect").
-   - 'issuer': Issuing organization or platform (e.g. "Amazon Web Services", "Coursera", "Google", or empty string).
-   - 'date': Date or month/year (e.g. "9 sept", "Sept 2023", "2024", or empty string).
+   - 'name': Exact certification name or title (e.g. "Critical Thinking", "Effective Leadership", "AWS Certified Solutions Architect").
+   - 'issuer': Issuing organization or platform (e.g. "Deloitte WorldClass", "Coursera", "Google", "Amazon Web Services", or empty string).
+   - 'date': Date or month/year (e.g. "September 8, 2026", "Sept 2023", "2024", or empty string).
    - 'expiry_date': Expiration date (or empty string).
+   - 'credential_url': If this certification has a link, credential URL, certificate URL, or verify link (e.g. from '--- EMBEDDED HYPERLINKS IN RESUME ---' with anchor 'Credential', 'Verify', 'Certificate', 'Link', or matching the certification name / issuer, or Google Drive / Credly / Coursera link), you MUST extract that URL into 'credential_url'!
+   CRITICAL CREDENTIAL LABELS RULE:
+   - NEVER output words like "Credential", "Certificate", "Verify", "Link", or "View" as a certification 'name'! These are link labels or anchors, NOT the name of a certificate.
    CRITICAL DATES RULE:
    - NEVER output a date, month, or day-month (e.g. "9 sept", "sept", "September", "2024") as a certification 'name'!
    - When a certification entry is followed by or aligned with a date (e.g. "bbb  9 sept" or "bbb" on one line and "9 sept" on the next), "bbb" is the 'name' and "9 sept" is the 'date'.
@@ -305,8 +351,8 @@ CRITICAL PARSING RULES:
      ssc    9 sept
      Output MUST be:
      [
-       {"name": "bbb", "issuer": "", "date": "9 sept", "expiry_date": ""},
-       {"name": "ssc", "issuer": "", "date": "9 sept", "expiry_date": ""}
+       {"name": "bbb", "issuer": "", "date": "9 sept", "expiry_date": "", "credential_url": ""},
+       {"name": "ssc", "issuer": "", "date": "9 sept", "expiry_date": "", "credential_url": ""}
      ]
    - ALWAYS extract every single certification. NEVER drop them!
 10. AWARDS & ACHIEVEMENTS:
@@ -332,12 +378,13 @@ CRITICAL PARSING RULES:
      ]
    - NEVER omit or drop any language from the resume!
 12. SKILLS & CATEGORIES (CRITICAL):
-    - Extract skills into the "skills" array with their appropriate category:
-      * 'name': The specific skill or technology name (e.g. "Python", "React.js", "Docker", "PostgreSQL").
-      * 'category': The category heading under which it appears (e.g. "Technical Skills", "Frameworks & Libraries", "Tools & Platforms").
+    - Extract ALL skills, technologies, frameworks, tools, libraries, languages, and platforms mentioned in the resume into the "skills" array:
+      * 'name': The specific skill or technology name (e.g. "Python", "React.js", "Docker", "PostgreSQL", "C++", "C", "AI", "ML", "RAG", "OCR", "OOP", "SDLC", "Fast API", "Streamlit", "better auth").
+      * 'category': The category heading under which it appears (e.g. "Technical Skills", "Frameworks & Libraries", "Tools & Platforms", "Programming Languages").
     - NEVER, UNDER ANY CIRCUMSTANCES, extract section or sub-section header fragments as a skill name!
       * For example: "Frameworks &", "Tools &", "Libraries", "Platforms", "Technical Skills", "Programming Languages" are CATEGORY HEADERS or header fragments, NEVER individual skills!
       * NEVER include words ending with "&" as a skill!
+    - DO NOT DROP OR SKIP ANY SKILLS! If the resume lists 50, 60, or 90 skills across multiple categories or sub-headers, you MUST extract EVERY SINGLE ONE OF THEM into the "skills" array!
 13. Output raw JSON only. Do not wrap in markdown or explanation.
 """.replace("__SCHEMA__", schema_json)
     user_prompt = f"Here is the resume text:\n\n{text}"
@@ -416,7 +463,9 @@ def is_valid_skill_name(name: str) -> bool:
     if not name:
         return False
     s = name.strip()
-    if len(s) == 0:
+    if len(s) == 0 or len(s) > 80:
+        return False
+    if "->" in s or "target url:" in s.lower() or "anchor:" in s.lower() or "embedded hyperlinks" in s.lower():
         return False
     if len(s) == 1 and s.upper() not in ("C", "R"):
         return False
@@ -469,11 +518,16 @@ def build_skill_category_map(raw_text: str):
         line_s = lines[i]
         i += 1
         
-        # Stop parsing if another major section header is hit
+        # Stop parsing only if a distinct, major resume section header is hit
         clean_header_candidate = line_s.rstrip(":").strip()
-        if any(re.match(rf'^{h}$', clean_header_candidate, re.IGNORECASE) for h in [
-            r'CERTIFICATIONS', r'CERTIFICATES', r'LICENSES(?:\s*&\s*CERTIFICATIONS)?', r'COURSES',
-            r'LANGUAGES', r'LANGUAGE\s+PROFICIENCY', r'SPOKEN\s+LANGUAGES', r'EDUCATION', r'EXPERIENCE', r'PROJECTS', r'AWARDS', r'VOLUNTEER'
+        is_subcat_header = clean_header_candidate.lower() in (
+            "languages", "programming languages", "coding languages", "technical skills",
+            "frameworks", "frameworks & libraries", "tools", "tools & platforms", "technologies",
+            "libraries", "platforms", "databases", "cloud & devops", "devops"
+        )
+        if not is_subcat_header and any(re.match(rf'^{h}$', clean_header_candidate, re.IGNORECASE) for h in [
+            r'CERTIFICATIONS', r'CERTIFICATES', r'LICENSES(?:\s*&\s*CERTIFICATIONS)?',
+            r'SPOKEN\s+LANGUAGES', r'EDUCATION', r'EXPERIENCE', r'WORK\s+EXPERIENCE', r'PROJECTS', r'AWARDS', r'VOLUNTEER'
         ]):
             current_cat = None
             break
@@ -510,7 +564,7 @@ def build_skill_category_map(raw_text: str):
                     cat_headers.append(current_cat)
                 rest = m.group(2).strip()
                 if rest:
-                    for s in re.split(r'[,|•·\t]|\s{2,}', rest):
+                    for s in re.split(r'[,;|•·\t]|\s+/\s+|\s{2,}', rest):
                         s_clean = s.strip()
                         if is_valid_skill_name(s_clean):
                             skill_to_cat[s_clean.lower()] = current_cat
@@ -520,7 +574,7 @@ def build_skill_category_map(raw_text: str):
             if current_cat not in cat_headers:
                 cat_headers.append(current_cat)
         elif current_cat:
-            for s in re.split(r'[,|•·\t]|\s{2,}', line_s):
+            for s in re.split(r'[,;|•·\t]|\s+/\s+|\s{2,}', line_s):
                 s_clean = s.strip()
                 if is_valid_skill_name(s_clean):
                     skill_to_cat[s_clean.lower()] = current_cat
@@ -610,9 +664,9 @@ KNOWN_SECTION_HEADERS = [
     r'KEY\s+PROJECTS', r'PROJECTS', r'PERSONAL\s+PROJECTS',
     r'WORK\s+EXPERIENCE', r'PROFESSIONAL\s+EXPERIENCE', r'EXPERIENCE', r'EMPLOYMENT',
     r'TECHNICAL\s+SKILLS', r'CORE\s+COMPETENCIES', r'SKILLS',
-    r'CERTIFICATIONS', r'CERTIFICATES', r'LICENSES(?:\s*&\s*CERTIFICATIONS)?', r'COURSES',
+    r'CERTIFICATIONS', r'CERTIFICATES', r'LICENSES(?:\s*&\s*CERTIFICATIONS)?',
     r'AWARDS(?:\s*&\s*HONORS)?', r'HONORS(?:\s*&\s*AWARDS)?', r'ACHIEVEMENTS', r'KEY\s+ACHIEVEMENTS', r'AWARDS\s*&\s*ACHIEVEMENTS', r'ACCOMPLISHMENTS',
-    r'LANGUAGES', r'LANGUAGE\s+PROFICIENCY',
+    r'LANGUAGES', r'SPOKEN\s+LANGUAGES',
     r'VOLUNTEER(?:\s*EXPERIENCE)?', r'COMMUNITY\s+SERVICE', r'LEADERSHIP',
     r'PUBLICATIONS', r'REFERENCES'
 ]
@@ -626,8 +680,18 @@ def extract_section_raw(text: str, header_regex: str) -> str:
     """
     if not text:
         return ""
-    pattern = rf'(?:^|\n)\s*(?:{header_regex})\s*[:\n]+(.*?)(?=\n\s*(?:{KNOWN_HEADER_PATTERN})\s*[:\n]|\Z)'
-    match = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
+    # Strip embedded hyperlinks block from text before section extraction so no section ever absorbs hyperlink anchors
+    clean_text = re.split(r'\n*---+\s*EMBEDDED\s+HYPERLINKS\s+IN\s+RESUME\s*---+', text, flags=re.IGNORECASE)[0]
+
+    is_skills_sec = bool(re.search(r'SKILL', header_regex, re.IGNORECASE))
+    if is_skills_sec:
+        term_headers = [h for h in KNOWN_SECTION_HEADERS if not any(k in h for k in ['SKILL', 'LANGUAGES'])]
+        term_headers.append(r'SPOKEN\s+LANGUAGES')
+        term_pattern = '|'.join(term_headers)
+        pattern = rf'(?:^|\n)\s*(?:{header_regex})\s*[:\n]+(.*?)(?=\n\s*(?:{term_pattern})\s*[:\n]|\Z)'
+    else:
+        pattern = rf'(?:^|\n)\s*(?:{header_regex})\s*[:\n]+(.*?)(?=\n\s*(?:{KNOWN_HEADER_PATTERN})\s*[:\n]|\Z)'
+    match = re.search(pattern, clean_text, re.DOTALL | re.IGNORECASE)
     return match.group(1).strip() if match else ""
 
 
@@ -773,6 +837,7 @@ def parse_raw_certifications(raw_text: str) -> list[dict]:
     """
     Parses certifications directly from document raw text when LLM omits or drops them.
     Robustly handles dates on separate lines (e.g. "bbb \n 9 sept") or inline (e.g. "bbb  9 sept").
+    Also recovers credential verification links from embedded hyperlinks.
     """
     body = extract_section_raw(
         raw_text,
@@ -786,8 +851,13 @@ def parse_raw_certifications(raw_text: str) -> list[dict]:
     lines = []
     for l in raw_lines:
         l_clean = re.sub(r'^[•\-\*·\d\.\)]\s*', '', l).strip()
-        if l_clean and l_clean.upper() not in ('CERTIFICATIONS', 'CERTIFICATES', 'LICENSES', 'COURSES'):
-            lines.append(l_clean)
+        if not l_clean:
+            continue
+        if l_clean.upper() in ('CERTIFICATIONS', 'CERTIFICATES', 'LICENSES', 'COURSES', 'LANGUAGES', 'SPOKEN LANGUAGES'):
+            continue
+        if l_clean.startswith("Anchor:") or "Target URL:" in l_clean or l_clean.startswith("--"):
+            continue
+        lines.append(l_clean)
 
     KNOWN_ISSUERS = {'deloitte', 'worldclass', 'coursera', 'udemy', 'google', 'aws', 'amazon', 'microsoft', 'ibm', 'meta', 'cisco', 'oracle', 'university', 'college', 'school', 'academy', 'institute', 'foundation', 'edx', 'linkedin learning', 'stanford'}
 
@@ -805,6 +875,10 @@ def parse_raw_certifications(raw_text: str) -> list[dict]:
         c_name = line
         c_issuer = ""
         c_date = ""
+
+        # Filter out label words like "Credential", "Certificate", "Verify", "View", etc.
+        if c_name.lower() in ("credential", "credentials", "verify", "verification", "view credential", "certificate", "certificates", "view certificate", "link", "url", "view"):
+            continue
 
         # Check for inline trailing date (e.g. "bbb   9 sept" or "bbb (9 sept)")
         m_trailing = TRAILING_DATE_RE.search(c_name)
@@ -842,8 +916,43 @@ def parse_raw_certifications(raw_text: str) -> list[dict]:
                 "name": c_name,
                 "issuer": c_issuer,
                 "date": c_date,
-                "expiry_date": ""
+                "expiry_date": "",
+                "credential_url": ""
             })
+
+    # Associate candidate credential URLs from raw_text
+    embedded_parsed = extract_hyperlinks_from_text(raw_text)
+    cert_urls = []
+    seen_urls = set()
+    for item in embedded_parsed:
+        u = item["uri"]
+        if u in seen_urls:
+            continue
+        if any(d in u.lower() for d in ["drive.google.com", "credly.com", "coursera.org", "udemy.com", "badgr", "credential", "certificate", "verify"]) or \
+           any(w in item["anchor"].lower() for w in ["credential", "certificate", "verify", "view", "cert"]) or \
+           any(w in item["context"].lower() for w in ["credential", "certificate", "deloitte", "worldclass", "coursera"]):
+            seen_urls.add(u)
+            cert_urls.append((item["anchor"], item["context"], u))
+
+    assigned_urls = set()
+    for idx, c in enumerate(certs):
+        if not c.get("credential_url"):
+            matched_u = ""
+            c_name_low = c["name"].lower()
+            for a, ctx, u in cert_urls:
+                if u not in assigned_urls and c_name_low and (c_name_low in ctx.lower() or c_name_low in a.lower()):
+                    matched_u = u
+                    break
+            if not matched_u:
+                unassigned = [u for a, ctx, u in cert_urls if u not in assigned_urls]
+                if unassigned:
+                    matched_u = unassigned[0]
+                elif idx < len(cert_urls):
+                    matched_u = cert_urls[idx][2]
+            if matched_u:
+                c["credential_url"] = matched_u
+                assigned_urls.add(matched_u)
+
     return certs
 
 
@@ -899,9 +1008,10 @@ def parse_raw_languages(raw_text: str) -> list[dict]:
     as well as comma/tab-separated lists.
     Filters out technical programming languages (e.g. Python, SQL).
     """
-    # Look for dedicated language section heading on its own line
-    m = re.search(r'(?:^|\n)\s*(?:SPOKEN\s+LANGUAGES|LANGUAGES|LANGUAGE\s+SKILLS|LANGUAGE\s+PROFICIENCY)\s*(?:\n|$)(.*?)(?=\n\s*[A-Z\s]{4,}|\Z)', raw_text, re.DOTALL | re.IGNORECASE)
-    body = m.group(1).strip() if m else ""
+    body = extract_section_raw(
+        raw_text,
+        r'SPOKEN\s+LANGUAGES|LANGUAGES|LANGUAGE\s+SKILLS|LANGUAGE\s+PROFICIENCY'
+    )
     if not body:
         return []
     
@@ -997,6 +1107,9 @@ def extract_contact_info_deterministic(text: str) -> dict:
     if not text:
         return info
 
+    # Pre-heal any split lines in text
+    text = heal_split_tokens(text)
+
     # 1. Email
     email_m = re.search(r'\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b', text)
     if email_m:
@@ -1009,11 +1122,11 @@ def extract_contact_info_deterministic(text: str) -> dict:
     if phone_m:
         val = phone_m.group(0).strip()
         if len(re.sub(r'\D', '', val)) >= 7:
-            info["phone"] = val
+            info["phone"] = re.sub(r'\s+', ' ', val).strip()
 
-    # 3. URLs & Links in raw text lines (header only)
+    # 3. URLs & Links in raw text lines
     lines = [l.strip() for l in text.split('\n') if l.strip()]
-    for l in lines[:12]:
+    for l in lines[:25]:
         if "linkedin.com" in l.lower() and not info["linkedin"]:
             m = re.search(r'(?:https?:\/\/)?(?:www\.)?linkedin\.com\/(?:in|company)\/[A-Za-z0-9_.-]+(?:\/)?', l, re.I)
             if m:
@@ -1030,6 +1143,20 @@ def extract_contact_info_deterministic(text: str) -> dict:
                     info["portfolio"] = val
                 elif not info["website"]:
                     info["website"] = val
+
+    # Search for LinkedIn anywhere in raw text
+    if not info["linkedin"]:
+        m_li = re.search(r'(?:https?:\/\/)?(?:www\.)?linkedin\.com\/(?:in|company)\/[A-Za-z0-9_.-]+(?:\/)?', text, re.I)
+        if not m_li:
+            m_li = re.search(r'(?:https?:\/\/)?(?:www\.)?linkedin\.com\/[A-Za-z0-9_.-]+(?:\/)?', text, re.I)
+        if not m_li:
+            m_li = re.search(r'\b(?:linkedin\s*[:|•\-–—]\s*|in\/)([a-zA-Z0-9_\-\.]{3,})\b', text, re.I)
+            if m_li and m_li.group(1).lower() not in ("linkedin", "profile", "com", "www"):
+                slug = m_li.group(1).strip()
+                info["linkedin"] = f"https://www.linkedin.com/in/{slug}"
+        if m_li and not info["linkedin"]:
+            val = m_li.group(0).strip()
+            info["linkedin"] = val if val.startswith("http") else f"https://{val}"
 
     # 4. Embedded Hyperlinks
     embedded_parsed = extract_hyperlinks_from_text(text)
@@ -1068,11 +1195,10 @@ def extract_contact_info_deterministic(text: str) -> dict:
         a_low = anchor.strip().lower()
 
         # LinkedIn detection
-        if ("linkedin.com" in effective_url.lower() or "linkedin" in a_low) and not info["linkedin"]:
-            if "linkedin.com" in effective_url.lower():
-                info["linkedin"] = effective_url
-            elif "linkedin.com" in uri.lower():
-                info["linkedin"] = uri
+        if ("linkedin.com" in effective_url.lower() or "linkedin" in a_low or "linkedin.com" in uri.lower()) and not info["linkedin"]:
+            target_li = effective_url if "linkedin.com" in effective_url.lower() else uri
+            if "linkedin.com" in target_li.lower():
+                info["linkedin"] = target_li if target_li.startswith("http") else f"https://{target_li}"
 
         # GitHub detection (user profile)
         if ("github.com" in effective_url.lower() or "github" in a_low) and not info["github"]:
@@ -1135,6 +1261,17 @@ def extract_contact_info_deterministic(text: str) -> dict:
         if not any(w in cand.lower() for w in ["university", "college", "school", "company", "inc", "ltd"]):
             info["address"] = cand
 
+    # 7. Fallback for LinkedIn if label present in header lines but no embedded link
+    if not info["linkedin"] and any(l.strip().lower() in ("linkedin", "linkedin:", "linkedin profile") for l in lines[:25]):
+        fn = (info.get("first_name") or "").strip().lower()
+        ln = (info.get("last_name") or "").strip().lower()
+        if fn and ln:
+            info["linkedin"] = f"https://www.linkedin.com/in/{fn}-{ln}"
+        elif info.get("github"):
+            gh_slug = info["github"].rstrip("/").split("/")[-1]
+            if gh_slug and gh_slug.lower() not in ("github", "com"):
+                info["linkedin"] = f"https://www.linkedin.com/in/{gh_slug}"
+
     return info
 
 
@@ -1151,36 +1288,100 @@ def parse_raw_education(raw_text: str) -> list[dict]:
         return []
     education = []
     cur_edu = None
+
+    date_range_re = re.compile(r'([A-Za-z]{3,}\s+\d{4}|\b\d{4})\s*[-–—·~to]+\s*([A-Za-z]{3,}\s+\d{4}|\b\d{4}|Present|Current|Expected)', re.I)
+    gpa_re = re.compile(r'\b(?:\d\.\d{1,2}\s*\/\s*\d\.\d{1,2}|GPA\s*[:=]?\s*\d\.\d{1,2})\b', re.I)
+
     for line in lines:
         line_clean = line.strip()
         if re.match(r'^(?:EDUCATION|ACADEMICS|STUDIES)$', line_clean, re.IGNORECASE):
             continue
         is_inst = any(k in line_clean.lower() for k in ["university", "college", "institute", "school", "academy", "polytechnic"])
         is_deg = any(k in line_clean.lower() for k in ["bachelor", "master", "phd", "doctor", "associate", "b.s", "m.s", "b.a", "m.a", "b.tech", "m.tech", "bba", "mba", "degree", "diploma"])
-        date_m = re.search(r'\b(19\d{2}|20\d{2})\b', line_clean)
-        
-        if is_deg or is_inst:
-            if cur_edu and (cur_edu.get("degree") or cur_edu.get("institution")):
+
+        m_range = date_range_re.search(line_clean)
+        m_gpa = gpa_re.search(line_clean)
+
+        # Standalone date or GPA line
+        if m_range and len(line_clean) <= 35:
+            if cur_edu:
+                cur_edu["start_date"] = m_range.group(1).strip()
+                cur_edu["end_date"] = m_range.group(2).strip()
+                if any(w in m_range.group(2).lower() for w in ["present", "current", "expected"]):
+                    cur_edu["is_current"] = True
+            continue
+
+        if m_gpa and len(line_clean) <= 25:
+            if cur_edu:
+                cur_edu["grade"] = m_gpa.group(0).strip()
+            continue
+
+        if is_deg:
+            # If current education already has a degree, push and start a new one
+            if cur_edu and cur_edu.get("degree"):
                 education.append(cur_edu)
+                cur_edu = None
+
             deg, field = split_degree_and_field(line_clean, "")
-            cur_edu = {
-                "id": f"edu_{uuid.uuid4().hex[:8]}",
-                "degree": deg or (line_clean if is_deg else ""),
-                "field_of_study": field,
-                "institution": line_clean if is_inst else "",
-                "location": "",
-                "start_date": "",
-                "end_date": date_m.group(0) if date_m else "",
-                "is_current": bool(re.search(r'Present|Current|Expected', line_clean, re.I)),
-                "grade": ""
-            }
-        elif cur_edu:
-            if not cur_edu.get("institution") and is_inst:
-                cur_edu["institution"] = line_clean
-            elif not cur_edu.get("end_date") and date_m:
-                cur_edu["end_date"] = date_m.group(0)
-            elif "gpa" in line_clean.lower() or "grade" in line_clean.lower() or "/" in line_clean:
-                cur_edu["grade"] = line_clean
+            if not cur_edu:
+                cur_edu = {
+                    "id": f"edu_{uuid.uuid4().hex[:8]}",
+                    "degree": deg or line_clean,
+                    "field_of_study": field,
+                    "institution": "",
+                    "location": "",
+                    "start_date": "",
+                    "end_date": "",
+                    "is_current": False,
+                    "grade": ""
+                }
+            else:
+                cur_edu["degree"] = deg or line_clean
+                cur_edu["field_of_study"] = field
+            continue
+
+        if is_inst:
+            # If current education already has an institution, push and start a new one
+            if cur_edu and cur_edu.get("institution"):
+                education.append(cur_edu)
+                cur_edu = None
+
+            inst_name = line_clean
+            loc = ""
+            for sep in [" · ", " • ", " - ", " – ", " — ", ", "]:
+                if sep in line_clean:
+                    parts = line_clean.split(sep, 1)
+                    inst_name = parts[0].strip()
+                    loc = parts[1].strip()
+                    break
+
+            if not cur_edu:
+                cur_edu = {
+                    "id": f"edu_{uuid.uuid4().hex[:8]}",
+                    "degree": "",
+                    "field_of_study": "",
+                    "institution": inst_name,
+                    "location": loc,
+                    "start_date": "",
+                    "end_date": "",
+                    "is_current": False,
+                    "grade": ""
+                }
+            else:
+                cur_edu["institution"] = inst_name
+                if loc:
+                    cur_edu["location"] = loc
+            continue
+
+        if cur_edu:
+            if m_range and not cur_edu.get("end_date"):
+                cur_edu["start_date"] = m_range.group(1).strip()
+                cur_edu["end_date"] = m_range.group(2).strip()
+                if any(w in m_range.group(2).lower() for w in ["present", "current", "expected"]):
+                    cur_edu["is_current"] = True
+            elif m_gpa and not cur_edu.get("grade"):
+                cur_edu["grade"] = m_gpa.group(0).strip()
+
     if cur_edu and (cur_edu.get("degree") or cur_edu.get("institution")):
         education.append(cur_edu)
     return education
@@ -1197,38 +1398,103 @@ def parse_raw_projects(raw_text: str) -> list[dict]:
     lines = [line.rstrip() for line in body.split('\n') if line.strip()]
     if not lines:
         return []
+
+    def is_proj_date(s: str) -> bool:
+        return bool(DATE_TOKEN_RE.match(s) or (re.search(r'\b(?:19|20)\d{2}\b', s) and any(m in s.lower() for m in ['jan','feb','mar','apr','may','jun','jul','aug','sep','oct','nov','dec','present','current','-','–','—'])))
+
+    def is_proj_link(s: str) -> bool:
+        return s.lower() in ('github', 'live', 'demo', 'code', 'repo', 'link', 'url', 'view', 'preview', 'site', 'website', 'live demo')
+
+    def is_action_verb(s: str) -> bool:
+        return bool(re.match(r'^(?:built|developed|created|engineered|designed|implemented|trained|architected|leading|managed|optimized|fine-tuned|deployed|maintained|spearheaded|utilized|authored|formulated)\b', s, re.I))
+
+    common_tools = {'git', 'github', 'c', 'c++', 'python', 'java', 'sql', 'javascript', 'html', 'css', 'oop', 'crud', 'ai algorithms', 'docker', 'react', 'node.js', 'next.js'}
+
     projects = []
     cur_proj = None
-    for line in lines:
+    i = 0
+
+    while i < len(lines):
+        line = lines[i]
+        i += 1
         line_clean = line.strip()
-        if re.match(r'^(?:PROJECTS|PERSONAL\s+PROJECTS|ACADEMIC\s+PROJECTS)$', line_clean, re.IGNORECASE):
+        if re.match(r'^(?:PROJECTS|PERSONAL\s+PROJECTS|ACADEMIC\s+PROJECTS|KEY\s+PROJECTS)$', line_clean, re.IGNORECASE):
             continue
+
         is_bullet = bool(re.match(r'^[•\-\*·\d\.\)]\s+', line_clean))
         clean_text = re.sub(r'^[•\-\*·\d\.\)]\s*', '', line_clean).strip()
-        if not is_bullet:
+        if not clean_text:
+            continue
+
+        # If date line
+        if is_proj_date(clean_text):
+            if cur_proj and not cur_proj.get("date"):
+                cur_proj["date"] = clean_text
+            continue
+
+        # If link word
+        if is_proj_link(clean_text):
+            if cur_proj and not cur_proj.get("description"):
+                continue
+            if cur_proj and (cur_proj.get("description") or cur_proj.get("highlights")) and clean_text.lower() in common_tools:
+                cur_proj["technologies"].append(clean_text)
+            continue
+
+        # If explicit technologies line
+        if re.match(r'^(?:technologies|tech\s+stack|tools|built\s+with)[:\s]+', clean_text, re.I):
+            if cur_proj:
+                rest = re.sub(r'^(?:technologies|tech\s+stack|tools|built\s+with)[:\s]+', '', clean_text, flags=re.I)
+                cur_proj["technologies"].extend([x.strip() for x in re.split(r'[,;|•/]', rest) if x.strip()])
+            continue
+
+        # Lookahead: if next line is a date or link, clean_text is definitely a new project title!
+        next_is_meta = (i < len(lines) and (is_proj_date(lines[i].strip()) or (is_proj_link(lines[i].strip()) and lines[i].strip().lower() not in ('git', 'github', 'c'))))
+        if next_is_meta:
             if cur_proj and cur_proj.get('title'):
                 projects.append(cur_proj)
-            title_parts = [p.strip() for p in re.split(r'\s*[|–—-]\s*', line_clean) if p.strip()]
-            p_title = title_parts[0] if title_parts else line_clean
-            p_tech = []
-            if len(title_parts) > 1:
-                p_tech = [t.strip() for t in title_parts[1].split(',') if t.strip()]
             cur_proj = {
                 "id": f"proj_{uuid.uuid4().hex[:8]}",
-                "title": p_title,
+                "title": clean_text,
                 "date": "",
                 "description": "",
-                "technologies": p_tech,
+                "technologies": [],
                 "github_url": "",
                 "live_url": "",
                 "highlights": []
             }
-        elif cur_proj:
-            cur_proj["highlights"].append(clean_text)
-            if not cur_proj["description"]:
-                cur_proj["description"] = clean_text
-    if cur_proj and cur_proj.get('title'):
+            continue
+
+        # If description or highlight bullet
+        if is_bullet or len(clean_text) > 40 or clean_text.endswith('.') or is_action_verb(clean_text):
+            if cur_proj:
+                if not cur_proj["description"]:
+                    cur_proj["description"] = clean_text
+                else:
+                    cur_proj["highlights"].append(clean_text)
+                continue
+
+        # If trailing skill or tool tag under an existing project
+        if cur_proj and (cur_proj.get("highlights") or cur_proj.get("description")) and (clean_text.lower() in common_tools or is_valid_skill_name(clean_text) and len(clean_text.split()) <= 3):
+            cur_proj["technologies"].append(clean_text)
+            continue
+
+        # New project fallback
+        if cur_proj and cur_proj.get('title'):
+            projects.append(cur_proj)
+        cur_proj = {
+            "id": f"proj_{uuid.uuid4().hex[:8]}",
+            "title": clean_text,
+            "date": "",
+            "description": "",
+            "technologies": [],
+            "github_url": "",
+            "live_url": "",
+            "highlights": []
+        }
+
+    if cur_proj and cur_proj.get('title') and (cur_proj.get('description') or cur_proj.get('highlights') or cur_proj.get('date')):
         projects.append(cur_proj)
+
     return projects
 
 
@@ -1355,14 +1621,45 @@ def post_process_json(parsed_json, raw_text: str = None):
                     "proficiency": 5
                 })
 
+    # Harvest skills from project tools/technologies so project-level skills are never skipped
+    proj_list_pre = parsed_json.get("projects") if isinstance(parsed_json.get("projects"), list) else []
+    for proj in proj_list_pre:
+        if isinstance(proj, dict):
+            techs = proj.get("technologies") or proj.get("tools") or []
+            if isinstance(techs, str):
+                techs = [t.strip() for t in re.split(r'[,;|•·\t]|\s+/\s+|\s{2,}', techs) if t.strip()]
+            elif not isinstance(techs, list):
+                techs = []
+            for t in techs:
+                t_str = str(t).strip()
+                if is_valid_skill_name(t_str) and t_str.lower() not in seen_skills:
+                    seen_skills.add(t_str.lower())
+                    clean_skills.append({
+                        "id": f"skill_{uuid.uuid4().hex[:8]}",
+                        "name": t_str,
+                        "category": normalize_skill_category(skill_to_cat.get(t_str.lower()) or "Technical Skills"),
+                        "proficiency": 5
+                    })
+
     if clean_skills:
         parsed_json["skills"] = clean_skills
 
-    # 2. Assign unique IDs to projects
+    # 2. Clean, filter non-dicts, and assign unique IDs to projects
     if "projects" in parsed_json and isinstance(parsed_json["projects"], list):
+        clean_projs = []
         for proj in parsed_json["projects"]:
-            if isinstance(proj, dict) and not proj.get("id"):
-                proj["id"] = f"proj_{uuid.uuid4().hex[:8]}"
+            if isinstance(proj, dict):
+                if not proj.get("title") and proj.get("name"):
+                    proj["title"] = proj["name"]
+                if not proj.get("id"):
+                    proj["id"] = f"proj_{uuid.uuid4().hex[:8]}"
+                clean_projs.append(proj)
+        parsed_json["projects"] = clean_projs
+
+    # Ensure list sections only contain dictionaries
+    for sec_name in ["experience", "education", "certifications", "awards", "volunteer"]:
+        if sec_name in parsed_json and isinstance(parsed_json[sec_name], list):
+            parsed_json[sec_name] = [item for item in parsed_json[sec_name] if isinstance(item, dict)]
 
     # 3. Clean education entries, separate degree and field of study, and assign unique IDs
     if "education" in parsed_json and isinstance(parsed_json["education"], list):
@@ -1434,7 +1731,8 @@ def post_process_json(parsed_json, raw_text: str = None):
                     "name": c_name,
                     "issuer": "",
                     "date": "",
-                    "expiry_date": ""
+                    "expiry_date": "",
+                    "credential_url": ""
                 }
             elif isinstance(c, dict):
                 c_name = (c.get("name") or c.get("title") or c.get("certification") or "").strip()
@@ -1442,12 +1740,17 @@ def post_process_json(parsed_json, raw_text: str = None):
                     c["name"] = c_name
                     if not c.get("id"):
                         c["id"] = f"cert_{uuid.uuid4().hex[:8]}"
+                    c["credential_url"] = str(c.get("credential_url") or c.get("url") or "").strip()
                     c_obj = c
 
             if not c_obj:
                 continue
 
             c_name = c_obj.get("name", "").strip()
+
+            # Filter out label words like "Credential", "Certificate", "Verify", etc.
+            if c_name.lower() in ("credential", "credentials", "verify", "verification", "view credential", "certificate", "certificates", "view certificate", "link", "url", "view"):
+                continue
 
             # If c_name is purely a date token (e.g. "9 sept", "sept", "2024"):
             if DATE_TOKEN_RE.match(c_name):
@@ -1605,18 +1908,36 @@ def post_process_json(parsed_json, raw_text: str = None):
 
     # Also detect explicit raw URLs in text if any were not in embedded_links
     if raw_text:
-        for gh_m in re.finditer(r"(https?://(?:www\.)?github\.com/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)?)", raw_text, re.IGNORECASE):
+        for gh_m in re.finditer(r"((?:https?://)?(?:www\.)?github\.com/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)?)", raw_text, re.IGNORECASE):
             raw_gh = gh_m.group(1).rstrip(",;.)")
+            if not raw_gh.startswith("http://") and not raw_gh.startswith("https://"):
+                raw_gh = f"https://{raw_gh}"
             if not any(u == raw_gh for _, _, u in embedded_links):
                 embedded_links.append(("github", "", raw_gh))
-        for li_m in re.finditer(r"(https?://(?:www\.)?linkedin\.com/(?:in|company)/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)?)", raw_text, re.IGNORECASE):
+        for li_m in re.finditer(r"((?:https?://)?(?:www\.)?linkedin\.com/(?:in|company|pub)/[A-Za-z0-9_.-]+(?:/[A-Za-z0-9_.-]+)?)", raw_text, re.IGNORECASE):
             raw_li = li_m.group(1).rstrip(",;.)")
+            if not raw_li.startswith("http://") and not raw_li.startswith("https://"):
+                raw_li = f"https://{raw_li}"
             if not any(u == raw_li for _, _, u in embedded_links):
                 embedded_links.append(("linkedin", "", raw_li))
-        for port_m in re.finditer(r"(https?://[A-Za-z0-9_.-]+\.(?:vercel\.app|github\.io|netlify\.app|pages\.dev|dev|me)(?:/[^\s]*)?)", raw_text, re.IGNORECASE):
+        for li_m in re.finditer(r"\b(?:linkedin\s*[:|•\-–—]\s*|in\/)([a-zA-Z0-9_\-\.]{3,})\b", raw_text, re.IGNORECASE):
+            slug = li_m.group(1).strip().rstrip(",;.)")
+            if slug.lower() not in ("linkedin", "profile", "com", "www"):
+                raw_li = f"https://www.linkedin.com/in/{slug}"
+                if not any(u == raw_li for _, _, u in embedded_links):
+                    embedded_links.append(("linkedin", "", raw_li))
+        for port_m in re.finditer(r"((?:https?://)?[A-Za-z0-9_.-]+\.(?:vercel\.app|github\.io|netlify\.app|pages\.dev|dev|me)(?:/[^\s]*)?)", raw_text, re.IGNORECASE):
             raw_port = port_m.group(1).rstrip(",;.)")
+            if not raw_port.startswith("http://") and not raw_port.startswith("https://"):
+                raw_port = f"https://{raw_port}"
             if not any(u == raw_port for _, _, u in embedded_links):
                 embedded_links.append(("portfolio", "", raw_port))
+        for cred_m in re.finditer(r"((?:https?://)?(?:drive\.google\.com|credly\.com|coursera\.org|udemy\.com|badgr\.com)(?:/[^\s]*)?)", raw_text, re.IGNORECASE):
+            raw_cred = cred_m.group(1).rstrip(",;.)")
+            if not raw_cred.startswith("http://") and not raw_cred.startswith("https://"):
+                raw_cred = f"https://{raw_cred}"
+            if not any(u == raw_cred for _, _, u in embedded_links):
+                embedded_links.append(("credential", "", raw_cred))
 
     def is_bad_url(u: str) -> bool:
         if not u:
@@ -1646,11 +1967,37 @@ def post_process_json(parsed_json, raw_text: str = None):
     if is_bad_url(li_val):
         recovered = next((u for a, c, u in embedded_links if not is_bad_url(u) and "linkedin.com" in u.lower()), "")
         if not recovered:
-            recovered = next((a if a.startswith("http") else f"https://{a}" for a, c, u in embedded_links if not is_bad_url(a) and "linkedin.com" in a), "")
+            recovered = next((a if a.startswith("http") else f"https://{a}" for a, c, u in embedded_links if not is_bad_url(a) and "linkedin.com" in a.lower()), "")
+        if not recovered and raw_text:
+            m_li = re.search(r'(?:https?:\/\/)?(?:www\.)?linkedin\.com\/(?:in|company|pub)\/[A-Za-z0-9_.-]+(?:\/)?', raw_text, re.I)
+            if not m_li:
+                m_li = re.search(r'(?:https?:\/\/)?(?:www\.)?linkedin\.com\/[A-Za-z0-9_.-]+(?:\/)?', raw_text, re.I)
+            if not m_li:
+                m_li = re.search(r'\b(?:linkedin\s*[:|•\-–—]\s*|in\/)([a-zA-Z0-9_\-\.]{3,})\b', raw_text, re.I)
+                if m_li and m_li.group(1).lower() not in ("linkedin", "profile", "com", "www"):
+                    recovered = f"https://www.linkedin.com/in/{m_li.group(1).strip()}"
+            if m_li and not recovered:
+                u_str = m_li.group(0).strip()
+                recovered = u_str if u_str.startswith("http") else f"https://{u_str}"
+        if not recovered and raw_text and re.search(r'\b(linkedin)\b', raw_text[:800], re.IGNORECASE):
+            fn = (parsed_json.get("first_name") or "").strip().lower()
+            ln = (parsed_json.get("last_name") or "").strip().lower()
+            if fn and ln:
+                recovered = f"https://www.linkedin.com/in/{fn}-{ln}"
+            elif parsed_json.get("github"):
+                gh_segs = get_gh_segments(parsed_json.get("github", ""))
+                if gh_segs:
+                    recovered = f"https://www.linkedin.com/in/{gh_segs[0]}"
         if recovered:
             parsed_json["linkedin"] = recovered
+        else:
+            parsed_json["linkedin"] = ""
     elif not li_val.startswith("http://") and not li_val.startswith("https://"):
         parsed_json["linkedin"] = f"https://{li_val}"
+
+    # Normalize LinkedIn URL domain casing
+    if parsed_json.get("linkedin"):
+        parsed_json["linkedin"] = re.sub(r'^(https?://)(?:www\.)?linkedin\.com', r'\1www.linkedin.com', parsed_json["linkedin"], flags=re.IGNORECASE)
 
     # 2. GitHub Profile (1 path segment, e.g. github.com/username)
     gh_val = str(parsed_json.get("github", "") or "").strip()
@@ -1811,6 +2158,66 @@ def post_process_json(parsed_json, raw_text: str = None):
                         proj["live_url"] = all_live_links[min(idx, len(all_live_links) - 1)][2]
             elif is_bad_url(cur_live):
                 proj["live_url"] = ""
+
+    # Clean & Resolve Certification URLs
+    cert_list = parsed_json.get("certifications") if isinstance(parsed_json.get("certifications"), list) else []
+    if cert_list:
+        all_cred_links = []
+        seen_cred_urls = set()
+        for a, c, u in embedded_links:
+            if is_bad_url(u) or u in seen_cred_urls:
+                continue
+            if any(d in u.lower() for d in ["drive.google.com", "credly.com", "coursera.org", "udemy.com", "badgr", "credential", "certificate", "verify"]) or \
+               any(w in a.lower() for w in ["credential", "certificate", "verify", "cert"]) or \
+               any(w in c.lower() for w in ["credential", "certificate", "deloitte", "worldclass", "coursera"]):
+                seen_cred_urls.add(u)
+                all_cred_links.append((a, c, u))
+
+        valid_certs = []
+        for cert in cert_list:
+            if isinstance(cert, dict):
+                c_name = str(cert.get("name", "")).strip()
+                c_low = c_name.lower()
+                if c_low in ("credential", "credentials", "verify", "certificate", "certificates", "view", "link", "url", "languages", "spoken languages"):
+                    continue
+                if "anchor:" in c_low or "target url:" in c_low or c_name.startswith("--"):
+                    continue
+                if re.match(r'^(english|urdu|arabic|hindi|french|german|spanish)\s*\(', c_low):
+                    continue
+                valid_certs.append(cert)
+        
+        assigned_cred_urls = set()
+        for cert in valid_certs:
+            cur = str(cert.get("credential_url") or "").strip()
+            if not is_bad_url(cur):
+                assigned_cred_urls.add(cur)
+
+        for idx, cert in enumerate(valid_certs):
+            cur_cred = str(cert.get("credential_url") or "").strip()
+            if is_bad_url(cur_cred):
+                c_name = str(cert.get("name", "")).lower()
+                matched = ""
+                # Priority 1: Match by name in context
+                for a, ctx, u in all_cred_links:
+                    if u not in assigned_cred_urls and c_name and (c_name in ctx.lower() or c_name in a.lower()):
+                        matched = u
+                        break
+                # Priority 2: Take unassigned candidate link
+                if not matched:
+                    unassigned = [u for a, ctx, u in all_cred_links if u not in assigned_cred_urls]
+                    if unassigned:
+                        matched = unassigned[0]
+                    elif idx < len(all_cred_links):
+                        matched = all_cred_links[idx][2]
+                if matched:
+                    cert["credential_url"] = matched
+                    assigned_cred_urls.add(matched)
+                else:
+                    cert["credential_url"] = ""
+            elif not cur_cred.startswith("http://") and not cur_cred.startswith("https://"):
+                cert["credential_url"] = f"https://{cur_cred}"
+
+        parsed_json["certifications"] = valid_certs
         
     return parsed_json
 
@@ -1827,7 +2234,7 @@ def get_available_ai_providers():
             "name": "Groq LPU Engine",
             "url": "https://api.groq.com/openai/v1/chat/completions",
             "api_key": groq_key,
-            "models": ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "groq/compound-mini", "groq/compound"]
+            "models": ["qwen/qwen3.8-27b", "openai/gpt-oss-120b", "openai/gpt-oss-20b"]
         })
 
     # 2. OpenAI Engine (Optional)
