@@ -219,33 +219,94 @@ class PDFService:
                     if target_pages == 1:
                         try:
                             page.add_style_tag(content="""
-                                @page { margin: 0 !important; }
+                                @page {
+                                    size: A4;
+                                    margin: 0 !important;
+                                }
                                 html, body {
-                                    height: 100% !important;
-                                    max-height: 100% !important;
-                                    overflow: hidden !important;
+                                    width: 100% !important;
                                     margin: 0 !important;
                                     padding: 0 !important;
+                                    background: #ffffff !important;
+                                    font-size: 9.8pt !important;
+                                    line-height: 1.45 !important;
                                 }
                                 .resume-page {
-                                    min-height: 0 !important;
-                                    height: 100% !important;
-                                    max-height: 100% !important;
+                                    width: 100% !important;
+                                    max-width: 100% !important;
+                                    margin: 0 !important;
                                     box-sizing: border-box !important;
-                                    padding: 10mm 14mm !important;
+                                    padding: 8mm 9mm !important;
+                                    background: #ffffff !important;
                                     overflow: hidden !important;
+                                }
+                                .skill-category {
+                                    display: flex !important;
+                                    align-items: flex-start !important;
+                                    gap: 8px !important;
+                                    margin-bottom: 5px !important;
+                                    padding-bottom: 5px !important;
+                                }
+                                .skill-category .skill-category-title,
+                                .skill-category:has(.skill-tags) .skill-category-title {
+                                    white-space: nowrap !important;
+                                    line-height: 1.3 !important;
+                                    flex: 0 0 auto !important;
+                                    width: auto !important;
+                                    min-width: 0 !important;
+                                    max-width: none !important;
+                                    font-weight: 700 !important;
+                                    font-size: 9.3pt !important;
+                                    padding-top: 1.5px !important;
+                                }
+                                .skill-tags .tag,
+                                .tech-tags .tag {
+                                    font-size: 8.3pt !important;
+                                    padding: 2.5px 7.5px !important;
+                                }
+                                .resume-section {
+                                    margin-bottom: 11px !important;
+                                }
+                                .section-title {
+                                    font-size: 11.5pt !important;
+                                    margin-bottom: 5px !important;
+                                    padding-bottom: 2px !important;
+                                }
+                                .entry {
+                                    margin-bottom: 8px !important;
+                                }
+                                .entry-title {
+                                    font-size: 10.4pt !important;
+                                }
+                                .entry-subtitle {
+                                    font-size: 9.4pt !important;
+                                }
+                                .entry-description,
+                                .summary-text {
+                                    font-size: 9.4pt !important;
+                                    line-height: 1.45 !important;
                                 }
                             """)
                         except Exception as st_err:
                             logger.debug(f"Style tag injection notice: {st_err}")
 
                     format_size = page_size if page_size in ("A4", "Letter") else "A4"
-                    page_height_px = 1122 if format_size == "A4" else 1056
+                    page_height_px = 1000 if format_size == "A4" else 950
                     max_allowed_height = page_height_px * target_pages
 
                     actual_height = page.evaluate("""() => {
-                        const el = document.querySelector('.resume-page') || document.body;
-                        return Math.max(el.scrollHeight, el.offsetHeight);
+                        const pageEl = document.querySelector('.resume-page') || document.body;
+                        let maxBottom = 0;
+                        const pageTop = pageEl.getBoundingClientRect().top;
+                        const allDescendants = pageEl.querySelectorAll('*');
+                        for (const child of allDescendants) {
+                            const rect = child.getBoundingClientRect();
+                            if (rect.bottom > maxBottom) {
+                                maxBottom = rect.bottom;
+                            }
+                        }
+                        const paddingBottom = parseFloat(window.getComputedStyle(pageEl).paddingBottom) || 0;
+                        return Math.max(pageEl.scrollHeight, Math.ceil(maxBottom - pageTop + paddingBottom));
                     }""")
 
                     logger.info(
@@ -253,12 +314,12 @@ class PDFService:
                         f"target: {target_pages} page(s) ({max_allowed_height}px)"
                     )
 
-                    # Dynamically calculate scale so the resume strictly fits within the target page count
+                    # Only scale down if content genuinely overflows the target page count
                     if actual_height > max_allowed_height:
                         fitted_scale = (max_allowed_height - 15) / actual_height
-                        calc_scale = max(0.50, min(1.0, round(fitted_scale, 3)))
+                        calc_scale = max(0.60, min(1.0, round(fitted_scale, 3)))
                     else:
-                        calc_scale = 0.98
+                        calc_scale = 1.0
 
                     logger.info(f"Using dynamic scale: {calc_scale}")
 
@@ -299,11 +360,11 @@ class PDFService:
                 weasy_fit = """
                 <style>
                     @page {
-                        margin: 8mm 10mm !important;
+                        margin: 8mm 9mm !important;
                     }
                     html, body {
-                        font-size: 8pt !important;
-                        line-height: 1.3 !important;
+                        font-size: 9.4pt !important;
+                        line-height: 1.4 !important;
                     }
                     .resume-page {
                         padding: 0 !important;
@@ -311,20 +372,50 @@ class PDFService:
                         min-height: 0 !important;
                         width: 100% !important;
                     }
+                    .skill-category {
+                        display: flex !important;
+                        align-items: flex-start !important;
+                        gap: 8px !important;
+                        margin-bottom: 5px !important;
+                        padding-bottom: 5px !important;
+                    }
+                    .skill-category .skill-category-title,
+                    .skill-category:has(.skill-tags) .skill-category-title {
+                        white-space: nowrap !important;
+                        line-height: 1.3 !important;
+                        flex: 0 0 auto !important;
+                        width: auto !important;
+                        min-width: 0 !important;
+                        max-width: none !important;
+                        font-weight: 700 !important;
+                        font-size: 9.3pt !important;
+                        padding-top: 1.5px !important;
+                    }
                     .resume-section {
-                        margin-bottom: 7px !important;
+                        margin-bottom: 10px !important;
                         break-inside: auto !important;
                         page-break-inside: auto !important;
                     }
                     .section-title {
-                        margin-bottom: 3px !important;
-                        padding-bottom: 1px !important;
-                        font-size: 10.5pt !important;
+                        margin-bottom: 4px !important;
+                        padding-bottom: 2px !important;
+                        font-size: 11pt !important;
                     }
                     .entry {
-                        margin-bottom: 5px !important;
+                        margin-bottom: 7px !important;
                         break-inside: avoid !important;
                         page-break-inside: avoid !important;
+                    }
+                    .entry-title {
+                        font-size: 10.2pt !important;
+                    }
+                    .entry-subtitle {
+                        font-size: 9.2pt !important;
+                    }
+                    .entry-description,
+                    .summary-text {
+                        font-size: 9.2pt !important;
+                        line-height: 1.4 !important;
                     }
                     .contact-info {
                         display: flex !important;
@@ -332,7 +423,7 @@ class PDFService:
                         white-space: nowrap !important;
                         overflow: hidden !important;
                         gap: 10px !important;
-                        font-size: 7.8pt !important;
+                        font-size: 8pt !important;
                         margin: 2px 0 0 0 !important;
                     }
                     .contact-item {
@@ -341,14 +432,14 @@ class PDFService:
                         white-space: nowrap !important;
                         word-break: keep-all !important;
                         gap: 3px !important;
-                        font-size: 7.8pt !important;
+                        font-size: 8pt !important;
                         flex-shrink: 0 !important;
                         margin: 0 !important;
                     }
                     .contact-item a {
                         white-space: nowrap !important;
                         word-break: keep-all !important;
-                        font-size: 7.8pt !important;
+                        font-size: 8pt !important;
                     }
                     .contact-item .icon,
                     .contact-item svg {
@@ -360,11 +451,11 @@ class PDFService:
                         margin: 0 !important;
                     }
                     .tag {
-                        padding: 1px 5px !important;
-                        font-size: 7.5pt !important;
+                        padding: 2px 7px !important;
+                        font-size: 8.2pt !important;
                     }
                     .tech-tags {
-                        gap: 3px !important;
+                        gap: 4px !important;
                     }
                 </style>
                 """
