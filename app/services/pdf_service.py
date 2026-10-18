@@ -228,38 +228,49 @@ class PDFService:
                                     margin: 0 !important;
                                     padding: 0 !important;
                                     background: #ffffff !important;
-                                    font-size: 9.5pt !important;
-                                    line-height: 1.4 !important;
+                                    font-size: 9.1pt !important;
+                                    line-height: 1.35 !important;
                                 }
                                 .resume-page {
                                     width: 100% !important;
                                     max-width: 100% !important;
                                     margin: 0 !important;
                                     box-sizing: border-box !important;
-                                    padding: 8mm 9mm !important;
+                                    padding: 6.5mm 9mm !important;
                                     background: #ffffff !important;
                                 }
                                 .tag {
-                                    font-size: 8pt !important;
-                                    padding: 2px 6px !important;
+                                    font-size: 7.8pt !important;
+                                    padding: 1.5px 5.5px !important;
                                 }
                                 .resume-section {
-                                    margin-bottom: 9px !important;
+                                    margin-bottom: 6px !important;
                                 }
                                 .section-title {
-                                    font-size: 11pt !important;
-                                    margin-bottom: 4px !important;
-                                    padding-bottom: 2px !important;
+                                    font-size: 10.6pt !important;
+                                    margin-bottom: 3px !important;
+                                    padding-bottom: 1.5px !important;
                                 }
                                 .entry {
-                                    margin-bottom: 6px !important;
+                                    margin-bottom: 4px !important;
+                                }
+                                .entry-title {
+                                    font-size: 9.8pt !important;
+                                }
+                                .entry-subtitle {
+                                    font-size: 8.8pt !important;
+                                }
+                                .entry-description,
+                                .summary-text {
+                                    font-size: 8.8pt !important;
+                                    line-height: 1.35 !important;
                                 }
                             """)
                         except Exception as st_err:
                             logger.debug(f"Style tag injection notice: {st_err}")
 
                     format_size = page_size if page_size in ("A4", "Letter") else "A4"
-                    page_height_px = 1020 if format_size == "A4" else 970
+                    page_height_px = 960 if format_size == "A4" else 910
                     max_allowed_height = page_height_px * target_pages
 
                     actual_height = page.evaluate("""() => {
