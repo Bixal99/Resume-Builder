@@ -219,28 +219,47 @@ class PDFService:
                     if target_pages == 1:
                         try:
                             page.add_style_tag(content="""
-                                @page { margin: 0 !important; }
+                                @page {
+                                    size: A4;
+                                    margin: 0 !important;
+                                }
                                 html, body {
-                                    height: 100% !important;
-                                    max-height: 100% !important;
-                                    overflow: hidden !important;
+                                    width: 100% !important;
                                     margin: 0 !important;
                                     padding: 0 !important;
+                                    background: #ffffff !important;
+                                    font-size: 9.5pt !important;
+                                    line-height: 1.4 !important;
                                 }
                                 .resume-page {
-                                    min-height: 0 !important;
-                                    height: 100% !important;
-                                    max-height: 100% !important;
+                                    width: 100% !important;
+                                    max-width: 100% !important;
+                                    margin: 0 !important;
                                     box-sizing: border-box !important;
-                                    padding: 10mm 14mm !important;
-                                    overflow: hidden !important;
+                                    padding: 8mm 9mm !important;
+                                    background: #ffffff !important;
+                                }
+                                .tag {
+                                    font-size: 8pt !important;
+                                    padding: 2px 6px !important;
+                                }
+                                .resume-section {
+                                    margin-bottom: 9px !important;
+                                }
+                                .section-title {
+                                    font-size: 11pt !important;
+                                    margin-bottom: 4px !important;
+                                    padding-bottom: 2px !important;
+                                }
+                                .entry {
+                                    margin-bottom: 6px !important;
                                 }
                             """)
                         except Exception as st_err:
                             logger.debug(f"Style tag injection notice: {st_err}")
 
                     format_size = page_size if page_size in ("A4", "Letter") else "A4"
-                    page_height_px = 1122 if format_size == "A4" else 1056
+                    page_height_px = 1020 if format_size == "A4" else 970
                     max_allowed_height = page_height_px * target_pages
 
                     actual_height = page.evaluate("""() => {
@@ -253,12 +272,12 @@ class PDFService:
                         f"target: {target_pages} page(s) ({max_allowed_height}px)"
                     )
 
-                    # Dynamically calculate scale so the resume strictly fits within the target page count
+                    # Scale down only if content exceeds the 1-page boundary
                     if actual_height > max_allowed_height:
-                        fitted_scale = (max_allowed_height - 15) / actual_height
-                        calc_scale = max(0.50, min(1.0, round(fitted_scale, 3)))
+                        fitted_scale = (max_allowed_height - 10) / actual_height
+                        calc_scale = max(0.65, min(1.0, round(fitted_scale, 3)))
                     else:
-                        calc_scale = 0.98
+                        calc_scale = 1.0
 
                     logger.info(f"Using dynamic scale: {calc_scale}")
 
